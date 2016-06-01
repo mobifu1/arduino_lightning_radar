@@ -8,8 +8,13 @@
 //
 // This program requires the UTFT library.
 // web: http://www.henningkarlsen.com/electronics
-
 #include <UTFT.h>
+
+// This program requires both the UTFT and UTouch libraries
+// in addition to the UTFT_Buttons add-on library.
+#include <UTFT.h>
+#include <ITDB02_Touch.h>
+#include <UTFT_Buttons_ITDB.h>
 
 // Declare Colors
 #define BLACK   0x0000
@@ -38,21 +43,62 @@ extern uint8_t SevenSegNumFont[];
 // Remember to change the model parameter to suit your display module!
 UTFT tft(SSD1289, 38, 39, 40, 41);
 
+// Set up UTouch...
+// Set the pins to the correct ones for your development board
+// -----------------------------------------------------------
+// Standard Arduino 2009/Uno/Leonardo shield   : 15,10,14,9,8
+// Standard Arduino Mega/Due shield            : 6,5,4,3,2
+ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
+
+// Finally we set up UTFT_Buttons :)
+UTFT_Buttons  myButtons(&tft, &myTouch);
+int but1, but2, pressed_button;
 void setup()
 {
   // Setup the LCD
   tft.InitLCD();
   tft.clrScr();
   tft.setBackColor(BLACK);
+
+  myTouch.InitTouch(1);
+  myTouch.setPrecision(PREC_MEDIUM);
+  myButtons.setTextFont(SmallFont);
+
+  but1 = myButtons.addButton( 10,  20, 30,  40, "Menue");
+  but2 = myButtons.addButton( 40,  50, 60,  70, "Back", BUTTON_DISABLED);
+
   ScreenText(WHITE, 0, 20, 1 , "Start");
 }
 
-void loop()
-{
-  ScreenText(WHITE, 0, 50, 1 , "Color Test");
-  delay(1000);
-  ScreenText(RED, 0, 50, 1 , "Color Test");
+void loop() {
 
+  ScreenText(WHITE, 0, 50, 1 , "Test");
+ 
+ //------------------------------------------------
+  myButtons.drawButtons();
+
+  while (1)
+  {
+    if (myTouch.dataAvailable() == true)
+    {
+      pressed_button = myButtons.checkButtons();
+
+      if (pressed_button == but1) {
+        if (myButtons.buttonEnabled(but1)) {
+          myButtons.disableButton(but1, true);
+          myButtons.enableButton(but2, true);
+          ScreenText(WHITE, 0, 220, 1 , "Button 1");
+        }
+      }
+      if (pressed_button == but2) {
+        if (myButtons.buttonEnabled(but2)) {
+          myButtons.disableButton(but2, true);
+          myButtons.enableButton(but1, true);
+          ScreenText(RED, 0, 240, 1 , "Button 2");
+        }
+      }
+    }
+  }
 }
 //----------------------------------------------
 //--------------GRAFIK-ROUTINEN-----------------
