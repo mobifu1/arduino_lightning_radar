@@ -140,6 +140,7 @@ boolean noise = false;
 boolean disturb = false;
 boolean simulate_on = false;
 boolean profile_indoor = true;
+boolean tick = false;
 //----------------------------------------------------------------
 #include <TimerOne.h>
 #include <SPI.h>
@@ -416,6 +417,7 @@ void loop() {
           myButtons.enableButton(but1, true);
           if (simulate_on == false) {
             simulate_on = true;
+            lightning_timer = 0;
           }
           else {
             simulate_on = false;
@@ -526,6 +528,16 @@ void simulate_strikes() {
 void refresh_display() {
 
   if (menue_on == false) {
+
+    if (tick == true) {
+      SetFilledCircle(WHITE , 10,  15, 2);
+      tick = false;
+    }
+    else {
+      SetFilledCircle(BLACK , 10,  15, 2);
+      tick = true;
+    }
+
     if (profile_indoor == true) {
       ScreenText(WHITE, 230, 160 , 1, "Indoor", 0);
     }
@@ -533,8 +545,8 @@ void refresh_display() {
       ScreenText(WHITE, 230, 160 , 1, "Outdoor", 0);
     }
 
-    ScreenText(WHITE, 45, 59 , 1, "60km", 0);
-    ScreenText(WHITE, 69, 119 , 1, "40km", 0);
+    ScreenText(WHITE, 40, 59 , 1, "60km", 0);
+    ScreenText(WHITE, 67, 119 , 1, "40km", 0);
     ScreenText(WHITE, 93, 179 , 1, "20km", 0);
 
     if (last_xpos > 0 && last_ypos > 0) {
@@ -555,28 +567,28 @@ void refresh_display() {
     int strikes_count = 0;
     //-----------------------------------------------------------
     if (noise == true ) {
-      ScreenText(WHITE, 20, 180 , 1, "Noise !", 0);
-      SetFilledCircle(RED , 10,  185, 2);
+      ScreenText(WHITE, 20, 200 , 1, "Noise !", 0);
+      SetFilledCircle(RED , 10,  205, 2);
       noise = false;
     }
     else {
-      ScreenText(BLACK, 20, 180 , 1, "Noise !", 0);
-      SetFilledCircle(BLACK , 10,  185, 2);
+      ScreenText(BLACK, 20, 200 , 1, "Noise !", 0);
+      SetFilledCircle(BLACK , 10,  205, 2);
     }
 
     if (disturb == true ) {
-      ScreenText(WHITE, 20, 200 , 1, "Disturber !", 0);
-      SetFilledCircle(RED , 10,  205, 2);
+      ScreenText(WHITE, 20, 220 , 1, "Disturber !", 0);
+      SetFilledCircle(RED , 10,  225, 2);
       disturb = false;
     }
     else {
-      ScreenText(BLACK, 20, 200 , 1, "Disturber !", 0);
-      SetFilledCircle(BLACK , 10,  205, 2);
+      ScreenText(BLACK, 20, 220 , 1, "Disturber !", 0);
+      SetFilledCircle(BLACK , 10,  225, 2);
     }
     //------------------------------------------------------------
     //ScreenText(WHITE, 140, 10 , 1, String(lightning_timer), 0);
-    SetLines(GREEN , 70, 30, 160 , 239);
-    SetLines(GREEN , 250, 30, 160 , 239);
+    SetLines(GREEN , 70, 40, 160 , 239);
+    SetLines(GREEN , 250, 40, 160 , 239);
     //  SetCircle(GREEN , 120,  319, 92);//20km
     //  SetCircle(GREEN , 120,  319, 181);//40km
     //  SetCircle(GREEN , 120,  319, 270);//60km
@@ -618,7 +630,7 @@ void refresh_display() {
     //count strikes
     ScreenText(WHITE, 80, 10 , 1,  "Lightning Strikes: ", 0);
     if (copy_strikes_count != strikes_count) {
-      //SetFilledRect(BLACK, 230, 10, 319, 20);
+      SetFilledRect(BLACK, 230, 10, 280, 20);
       ScreenText(WHITE, 230, 10 , 1,  String(strikes_count), 0);
       copy_strikes_count = strikes_count;
     }
