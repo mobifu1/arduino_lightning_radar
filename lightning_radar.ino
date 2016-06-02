@@ -181,7 +181,7 @@ AS3935 AS3935(SPItransfer, PIN_CS, PIN_IRQ);
 void setup()
 {
   // Setup the LCD
-  tft.InitLCD();
+  tft.InitLCD();//(oriantation:90)
   tft.clrScr();
   tft.setBackColor(BLACK);
 
@@ -325,9 +325,9 @@ void loop() {
             lightning_strike[i][2] = strokeDistance;
             lightning_strike[i][3] = lightning_timer;
             long randNumber;
-            randNumber = random(120 - strokeDistance, 120 + strokeDistance);
+            randNumber = random(230 - strokeDistance, 230 + strokeDistance);
             lightning_strike[i][4] = int(randNumber);
-            lightning_strike[i][5] = int(316 - (strokeDistance * 4.444));
+            lightning_strike[i][5] = int(230 - (strokeDistance * 3.0));
             SetCircle(BLACK , last_xpos,  last_ypos, 8);
             last_xpos = lightning_strike[i][4];
             last_ypos = lightning_strike[i][5];
@@ -474,7 +474,7 @@ unsigned long SetTriangle(uint16_t color , int xt1pos, int yt1pos, int xt2pos, i
 void simulate_strikes() {
 
   //----create lightning Strike:-----------------------
-  ScreenText(WHITE, 170, 10 , 1, "Simulation", 0);
+  ScreenText(WHITE, 180, 30 , 1, "Simulation", 0);
 
   if (lightning_timer > 700) {
     lightning_timer = 0;
@@ -497,14 +497,21 @@ void simulate_strikes() {
         lightning_strike[i][2] = int(randNumber2);//dist
         lightning_strike[i][3] = lightning_timer;
         long randNumber;
-        randNumber = random(120 - lightning_strike[i][2], 120 + lightning_strike[i][2]);
+        randNumber = random(230 - lightning_strike[i][2], 230 + lightning_strike[i][2]);
         lightning_strike[i][4] = int(randNumber);
-        lightning_strike[i][5] = int(316 - (lightning_strike[i][2] * 4.444));
+        lightning_strike[i][5] = int(230 - (lightning_strike[i][2] * 3.0));//235
         SetCircle(BLACK , last_xpos,  last_ypos, 8);
         last_xpos = lightning_strike[i][4];
         last_ypos = lightning_strike[i][5];
         SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
         break;
+        //activ,strenght,distance,age,x_pos,y_pos
+        //activ:0/1
+        //strenght:1-100
+        //distance=0-63km
+        //time_stamp=0-32767seconds
+        //x:0-139 //position onn screen
+        //y:0-239 //position onn screen
       }
     }
   }
@@ -512,12 +519,14 @@ void simulate_strikes() {
 //--------------------------------------------------------------
 void refresh_display() {
 
-
   if (menue_on == false) {
-    ScreenText(WHITE, 100, 20 , 1, "60km", 0);
-    ScreenText(WHITE, 100, 100 , 1, "40km", 0);
-    ScreenText(WHITE, 100, 180 , 1, "20km", 0);
-    SetCircle(BLACK , last_xpos,  last_ypos, 8);
+    ScreenText(WHITE, 100, 40 , 1, "60km", 0);
+    ScreenText(WHITE, 120, 100 , 1, "40km", 0);
+    ScreenText(WHITE, 140, 160 , 1, "20km", 0);
+
+    //    if (last_xpos > 0 && last_ypos > 0) {
+    //      SetCircle(BLACK , last_xpos,  last_ypos, 8); //display flackert wenn koordinaten ausserhalb vom display
+    //    }
 
     if (simulate_on == true) {
       simulate_strikes();
