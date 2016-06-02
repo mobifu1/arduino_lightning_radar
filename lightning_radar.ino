@@ -65,7 +65,8 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&tft, &myTouch);
-int but1, but2, but3, pressed_button;
+int but1, but2, but3, but4 , pressed_button;
+boolean menue_on = false;
 
 //Pin
 //#define LED A5// Pin of LED
@@ -137,7 +138,7 @@ int last_xpos;
 int last_ypos;
 boolean noise = false;
 boolean disturb = false;
-
+boolean simulate_on = false;
 //----------------------------------------------------------------
 #include <TimerOne.h>
 #include <SPI.h>
@@ -170,8 +171,8 @@ volatile int AS3935IrqTriggered;
 // is not a requirement
 
 //AS3935 AS3935(SPItransfer, SS, 2);
-int PIN_IRQ = 2;//IRQ PIN of Chip
-int PIN_CS = 10;//Sensor CS PIN
+int PIN_IRQ = 20;//IRQ PIN of Chip
+int PIN_CS = 21;//Sensor CS PIN
 AS3935 AS3935(SPItransfer, PIN_CS, PIN_IRQ);
 
 //--------------------------------------------------------------
@@ -185,7 +186,7 @@ void setup()
   tft.setBackColor(BLACK);
 
   //pinMode(LED, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.1-Beta");
+  ScreenText(WHITE, 0, 10 , 2, "V0.1-Beta", 0);
   //Serial.begin(9600);
   //------------------------------------------------------------------------------
   // first begin, then set parameters
@@ -205,7 +206,7 @@ void setup()
   // calibration function will return false
   if (!AS3935.calibrate())
     //Serial.println("Tuning out of range, check your wiring, your sensor and make sure physics laws have not changed!");
-    ScreenText(WHITE, 0, 50 , 1, "Tuning out of range !");
+    ScreenText(WHITE, 0, 50 , 1, "Tuning out of range !", 0);
   // since this is demo code, we just go on minding our own business and ignore the fact that someone divided by zero
   // first let's turn on disturber indication and print some register values from AS3935
   // tell AS3935 we are indoors, for outdoors use setOutdoors() function
@@ -238,7 +239,7 @@ void setup()
 
   // ChipKit Max32 - irq connected to pin 2
   //attachInterrupt(1, AS3935Irq, RISING);
-  int myIRQ = 0;//UNO Board
+  int myIRQ = 3;//Mega Board
   attachInterrupt(myIRQ, AS3935Irq, RISING);
   // uncomment line below and comment out line above for Arduino Mega 2560, irq still connected to pin 2
   // attachInterrupt(0,AS3935Irq,RISING);
@@ -254,8 +255,16 @@ void setup()
   myButtons.setTextFont(SmallFont);
 
   but1 = myButtons.addButton( 10,  10, 65,  60, "Menue");
-  but2 = myButtons.addButton( 10,  80, 65,  60, "Indoor", BUTTON_DISABLED);
-  but3 = myButtons.addButton( 10,  150, 65,  60, "Outdoor", BUTTON_DISABLED);
+  but2 = myButtons.addButton( 10,  80, 65,  60, "Indoor");
+  but3 = myButtons.addButton( 10,  150, 65,  60, "Outdoor");
+  but4 = myButtons.addButton( 10,  10, 65,  60, "Simulate");
+  myButtons.setButtonColors(VGA_WHITE, VGA_RED, VGA_WHITE, VGA_BLACK, VGA_BLACK);
+  myButtons.disableButton(but2, true);
+  myButtons.disableButton(but3, true);
+  myButtons.disableButton(but4, true);
+  tft.clrScr();
+  tft.setBackColor(BLACK);
+  myButtons.drawButton(but1);
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -330,42 +339,91 @@ void loop() {
     }
   }
   //------------------------------------------------
-  //  myButtons.drawButtons();
-  //
-  //  while (1)
-  //  {
-  //    if (myTouch.dataAvailable() == true)
-  //    {
-  //      pressed_button = myButtons.checkButtons();
-  //
-  //      if (pressed_button == but1) {
-  //        if (myButtons.buttonEnabled(but1)) {
-  //          myButtons.disableButton(but1, true);
-  //          myButtons.enableButton(but2, true);
-  //          myButtons.enableButton(but3, true);
-  //        }
-  //      }
-  //      if (pressed_button == but2) {
-  //        if (myButtons.buttonEnabled(but2)) {
-  //          myButtons.disableButton(but2, true);
-  //          myButtons.disableButton(but3, true);
-  //          myButtons.enableButton(but1, true);
-  //        }
-  //      }
-  //      if (pressed_button == but3) {
-  //        if (myButtons.buttonEnabled(but3)) {
-  //          myButtons.disableButton(but2, true);
-  //          myButtons.disableButton(but3, true);
-  //          myButtons.enableButton(but1, true);
-  //        }
-  //      }
-  //    }
-  //  }
+  //addButton
+  //drawButtons
+  //drawButton
+  //enableButton
+  //disableButton
+  //relabelButton
+  //buttonEnabled
+  //deleteButton
+  //deleteAllButtons
+  //checkButtons
+  //setTextFont
+  //setSymbolFont
+  //setButtonColors
+
+  while (1)
+  {
+    if (myTouch.dataAvailable() == true)
+    {
+      pressed_button = myButtons.checkButtons();
+
+      if (pressed_button == but1) {
+        if (myButtons.buttonEnabled(but1)) {
+          menue_on = true;
+          myButtons.disableButton(but1, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but2);
+          myButtons.drawButton(but3);
+          myButtons.drawButton(but4);
+          myButtons.enableButton(but2, true);
+          myButtons.enableButton(but3, true);
+          myButtons.enableButton(but4, true);
+        }
+      }
+      if (pressed_button == but2) {
+        if (myButtons.buttonEnabled(but2)) {
+          myButtons.disableButton(but2, true);
+          myButtons.disableButton(but3, true);
+          myButtons.disableButton(but4, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but1);
+          myButtons.enableButton(but1, true);
+          AS3935.setIndoors();
+          menue_on = false;
+        }
+      }
+      if (pressed_button == but3) {
+        if (myButtons.buttonEnabled(but3)) {
+          myButtons.disableButton(but2, true);
+          myButtons.disableButton(but3, true);
+          myButtons.disableButton(but4, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but1);
+          myButtons.enableButton(but1, true);
+          AS3935.setOutdoors();
+          menue_on = false;
+        }
+      }
+      if (pressed_button == but4) {
+        if (myButtons.buttonEnabled(but4)) {
+          myButtons.disableButton(but2, true);
+          myButtons.disableButton(but3, true);
+          myButtons.disableButton(but4, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but1);
+          myButtons.enableButton(but1, true);
+          if (simulate_on == false) {
+            simulate_on = true;
+          }
+          else {
+            simulate_on = false;
+          }
+          menue_on = false;
+        }
+      }
+    }
+  }
 }
 //----------------------------------------------
 //--------------GRAFIK-ROUTINEN-----------------
 //----------------------------------------------
-unsigned long ScreenText(uint16_t color, int xtpos, int ytpos, int text_size , String text) {
+unsigned long ScreenText(uint16_t color, int xtpos, int ytpos, int text_size , String text, int rotation) {
   tft.setColor(color);
   if (text_size == 1) {
     tft.setFont(SmallFont);
@@ -373,7 +431,7 @@ unsigned long ScreenText(uint16_t color, int xtpos, int ytpos, int text_size , S
   if (text_size == 2) {
     tft.setFont(BigFont);
   }
-  tft.print(text, xtpos, ytpos);
+  tft.print(text, xtpos, ytpos, rotation);
 }
 
 unsigned long SetLines(uint16_t color , int xl1pos, int yl1pos, int xl2pos, int yl2pos) {
@@ -416,7 +474,7 @@ unsigned long SetTriangle(uint16_t color , int xt1pos, int yt1pos, int xt2pos, i
 void simulate_strikes() {
 
   //----create lightning Strike:-----------------------
-  ScreenText(WHITE, 170, 10 , 1, String("Simulation"));
+  ScreenText(WHITE, 170, 10 , 1, "Simulation", 0);
 
   if (lightning_timer > 700) {
     lightning_timer = 0;
@@ -454,108 +512,113 @@ void simulate_strikes() {
 //--------------------------------------------------------------
 void refresh_display() {
 
-  ScreenText(WHITE, 0, 89 , 1, String("60km"));
-  ScreenText(WHITE, 30, 168 , 1, String("40km"));
-  ScreenText(WHITE, 65, 252 , 1, String("20km"));
-  SetCircle(BLACK , last_xpos,  last_ypos, 8);
-  //simulate_strikes();
 
-  //--------increment counter---------------------------------
-  lightning_timer++;
-  if (lightning_timer < 0) {
-    lightning_timer = 0;
-  }
-  //------Scale-----------------------------------------------
-  int lightning_age;
-  int strikes_count = 0;
-  //tft.fillScreen(BLACK);
-  //-----------------------------------------------------------
-  if (noise == true ) {
-    ScreenText(WHITE, 44, 285 , 1, String("Noise !"));
-    SetFilledCircle(RED , 12,  288, 2);
-    noise = false;
-  }
-  else {
-    ScreenText(BLACK, 44, 285 , 1, String("Noise !"));
-    SetFilledCircle(BLACK , 12,  288, 2);
-  }
+  if (menue_on == false) {
+    ScreenText(WHITE, 100, 20 , 1, "60km", 0);
+    ScreenText(WHITE, 100, 100 , 1, "40km", 0);
+    ScreenText(WHITE, 100, 180 , 1, "20km", 0);
+    SetCircle(BLACK , last_xpos,  last_ypos, 8);
 
-  if (disturb == true ) {
-    ScreenText(WHITE, 39, 305 , 1, String("Disturber !"));
-    SetFilledCircle(RED , 12,  308, 2);
-    disturb = false;
-  }
-  else {
-    ScreenText(BLACK, 39, 305 , 1, String("Disturber !"));
-    SetFilledCircle(BLACK , 12,  308, 2);
-  }
-  //------------------------------------------------------------
-  //ScreenText(WHITE, x_edge_left, 10 , 2, String(lightning_timer));
-  //  SetLines(GREEN , 5, 40, 120 , 319);
-  //  SetLines(GREEN , 235, 40, 120 , 319);
-  //  SetCircle(GREEN , 120,  319, 92);//20km
-  //  SetCircle(GREEN , 120,  319, 181);//40km
-  //  SetCircle(GREEN , 120,  319, 270);//60km
+    if (simulate_on == true) {
+      simulate_strikes();
+    }
 
-  // activ,strenght,distance,age,x_pos,y_pos
-  //activ:0/1
-  //strenght:1-100
-  //distance=0-63km
-  //time_stamp=0-32767seconds
-  //x:0-139 //position onn screen
-  //y:0-239 //position onn screen
-  for (int i = 0; i < 50 ; i++) {
-    if (lightning_strike[i][0] == 1) {//activ
-      strikes_count++;
-      lightning_age = lightning_timer - lightning_strike[i][3] ; //time_stamp
-      if (lightning_age < 0) {
-        lightning_age = lightning_age + 32768;
-      }
-      //ScreenText(WHITE, x_edge_left, 300 , 2, String(lightning_age));
-      if ( lightning_age < (60 * time_factor)) {
-        SetFilledCircle(WHITE, lightning_strike[i][4], lightning_strike[i][5] , 2);
-      }
-      if ( lightning_age >= (60 * time_factor) && lightning_age < (120 * time_factor)) {
-        SetFilledCircle(YELLOW, lightning_strike[i][4], lightning_strike[i][5] , 2);
-      }
-      if ( lightning_age >= (120 * time_factor) && lightning_age < (180 * time_factor)) {
-        SetFilledCircle(RED, lightning_strike[i][4], lightning_strike[i][5] , 2);
-      }
-      if ( lightning_age >= (180 * time_factor) && lightning_age < (240 * time_factor)) {
-        SetFilledCircle(BLUE, lightning_strike[i][4], lightning_strike[i][5] , 2);
-      }
-      if ( lightning_age >= (240 * time_factor)) {
-        SetFilledCircle(BLACK, lightning_strike[i][4], lightning_strike[i][5] , 2);
-        lightning_strike[i][0] = 0; //deactiv
+    //--------increment counter---------------------------------
+    lightning_timer++;
+    if (lightning_timer < 0) {
+      lightning_timer = 0;
+    }
+    //------Scale-----------------------------------------------
+    int lightning_age;
+    int strikes_count = 0;
+    //-----------------------------------------------------------
+    if (noise == true ) {
+      ScreenText(WHITE, 20, 180 , 1, "Noise !", 0);
+      SetFilledCircle(RED , 10,  185, 2);
+      noise = false;
+    }
+    else {
+      ScreenText(BLACK, 20, 180 , 1, "Noise !", 0);
+      SetFilledCircle(BLACK , 10,  185, 2);
+    }
+
+    if (disturb == true ) {
+      ScreenText(WHITE, 20, 200 , 1, "Disturber !", 0);
+      SetFilledCircle(RED , 10,  205, 2);
+      disturb = false;
+    }
+    else {
+      ScreenText(BLACK, 20, 200 , 1, "Disturber !", 0);
+      SetFilledCircle(BLACK , 10,  205, 2);
+    }
+    //------------------------------------------------------------
+    //ScreenText(WHITE, 140, 10 , 1, String(lightning_timer), 0);
+    SetLines(GREEN , 140, 20, 230 , 239);
+    SetLines(GREEN , 319, 20, 230 , 239);
+    //  SetCircle(GREEN , 120,  319, 92);//20km
+    //  SetCircle(GREEN , 120,  319, 181);//40km
+    //  SetCircle(GREEN , 120,  319, 270);//60km
+
+    //activ,strenght,distance,age,x_pos,y_pos
+    //activ:0/1
+    //strenght:1-100
+    //distance=0-63km
+    //time_stamp=0-32767seconds
+    //x:0-139 //position onn screen
+    //y:0-239 //position onn screen
+    for (int i = 0; i < 50 ; i++) {
+      if (lightning_strike[i][0] == 1) {//activ
+        strikes_count++;
+        lightning_age = lightning_timer - lightning_strike[i][3] ; //time_stamp
+        if (lightning_age < 0) {
+          lightning_age = lightning_age + 32768;
+        }
+        //ScreenText(WHITE, 0, 300 , 2, String(lightning_age), 0);
+        if ( lightning_age < (60 * time_factor)) {
+          SetFilledCircle(WHITE, lightning_strike[i][4], lightning_strike[i][5] , 2);
+        }
+        if ( lightning_age >= (60 * time_factor) && lightning_age < (120 * time_factor)) {
+          SetFilledCircle(YELLOW, lightning_strike[i][4], lightning_strike[i][5] , 2);
+        }
+        if ( lightning_age >= (120 * time_factor) && lightning_age < (180 * time_factor)) {
+          SetFilledCircle(RED, lightning_strike[i][4], lightning_strike[i][5] , 2);
+        }
+        if ( lightning_age >= (180 * time_factor) && lightning_age < (240 * time_factor)) {
+          SetFilledCircle(BLUE, lightning_strike[i][4], lightning_strike[i][5] , 2);
+        }
+        if ( lightning_age >= (240 * time_factor)) {
+          SetFilledCircle(BLACK, lightning_strike[i][4], lightning_strike[i][5] , 2);
+          lightning_strike[i][0] = 0; //deactiv
+        }
       }
     }
-  }
-  //-------------------------------------------------------------------------------
-  //count strikes
-  if (copy_strikes_count != strikes_count) {
-    SetFilledRect(BLACK, 0, 0, 160, 30);
-    ScreenText(WHITE, 0, 10 , 1, " Lightning Strikes: " + String(strikes_count));
-    copy_strikes_count = strikes_count;
-  }
-  //-------------------------------------------------------------------------------
-  //clear the oldest lightning when array full
-  if ( lightning_strike[49][0] == 1) {
-    int lightning_oldest = 0;
-    int array_position = 0;
-    for (int x = 0; x < 50 ; x++) {
-      lightning_age = lightning_timer - lightning_strike[x][3] ; //time_stamp
-      if (lightning_age < 0) {
-        lightning_age = lightning_age + 32768;
-      }
-      if (lightning_age > lightning_oldest) {
-        lightning_oldest = lightning_age;
-        array_position = x;
-      }
+    //-------------------------------------------------------------------------------
+    //count strikes
+    if (copy_strikes_count != strikes_count) {
+      SetFilledRect(BLACK, 140, 10, 319, 20);
+      ScreenText(WHITE, 140, 10 , 1,  " Lightning Strikes: " + String(strikes_count), 0);
+      copy_strikes_count = strikes_count;
     }
-    SetFilledCircle(BLACK, lightning_strike[array_position][4], lightning_strike[array_position][5] , 2);
-    lightning_strike[array_position][0] = 0;
+    //-------------------------------------------------------------------------------
+    //clear the oldest lightning when array full
+    if ( lightning_strike[49][0] == 1) {
+      int lightning_oldest = 0;
+      int array_position = 0;
+      for (int x = 0; x < 50 ; x++) {
+        lightning_age = lightning_timer - lightning_strike[x][3] ; //time_stamp
+        if (lightning_age < 0) {
+          lightning_age = lightning_age + 32768;
+        }
+        if (lightning_age > lightning_oldest) {
+          lightning_oldest = lightning_age;
+          array_position = x;
+        }
+      }
+      SetFilledCircle(BLACK, lightning_strike[array_position][4], lightning_strike[array_position][5] , 2);
+      lightning_strike[array_position][0] = 0;
+    }
+    lightning_direction();
   }
-  lightning_direction();
 }
 //--------------------------------------------------------------
 void lightning_direction() {
@@ -584,17 +647,17 @@ void lightning_direction() {
     }
   }
   if (lightning_strike[array_position_oldest][5] < lightning_strike[array_position_newest][5]) {
-    SetTriangle(BLACK , 220, 240, 230, 240, 225, 230);
-    SetTriangle(WHITE , 220, 230, 230, 230, 225, 240);
+    SetTriangle(BLACK , 300, 210, 310, 210, 305, 200);
+    SetTriangle(WHITE , 300, 200, 310, 200, 305, 210);
 
   }
   if (lightning_strike[array_position_oldest][5] > lightning_strike[array_position_newest][5]) {
-    SetTriangle(BLACK , 220, 230, 230, 230, 225, 240);
-    SetTriangle(WHITE , 220, 240, 230, 240, 225, 230);
+    SetTriangle(BLACK , 300, 200, 310, 200, 305, 210);
+    SetTriangle(WHITE , 300, 210, 310, 210, 305, 200);
   }
   if (lightning_strike[array_position_oldest][5] == lightning_strike[array_position_newest][5]) {
-    SetTriangle(BLACK , 220, 240, 230, 240, 225, 230);
-    SetTriangle(BLACK , 220, 230, 230, 230, 225, 240);
+    SetTriangle(BLACK , 300, 210, 310, 210, 305, 200);
+    SetTriangle(BLACK , 300, 200, 310, 200, 305, 210);
   }
 }
 //--------------------------------------------------------------
@@ -604,16 +667,16 @@ void printAS3935Registers()
   int noiseFloor = AS3935.getNoiseFloor();
   int spikeRejection = AS3935.getSpikeRejection();
   int watchdogThreshold = AS3935.getWatchdogThreshold();
-  ScreenText(WHITE, 0, 70 , 1, "Read Data from AS3935:");
+  ScreenText(WHITE, 0, 70 , 1, "Read Data from AS3935:", 0);
   //Serial.print("Noise floor is: ");
   //Serial.println(noiseFloor, DEC);
-  ScreenText(WHITE, 0, 90 , 1, "Noise floor is: " + noiseFloor);
+  ScreenText(WHITE, 0, 90 , 1, "Noise floor is: " + noiseFloor, 0);
   //Serial.print("Spike rejection is: ");
   //Serial.println(spikeRejection, DEC);
-  ScreenText(WHITE, 0, 110 , 1, "Spike rejection is: " + spikeRejection);
+  ScreenText(WHITE, 0, 110 , 1, "Spike rejection is: " + spikeRejection, 0);
   //Serial.print("Watchdog threshold is: ");
   //Serial.println(watchdogThreshold, DEC);
-  ScreenText(WHITE, 0, 130 , 1, "Watchdog threshold is: " + watchdogThreshold);
+  ScreenText(WHITE, 0, 130 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
 }
 
 // this is implementation of SPI transfer that gets passed to AS3935
