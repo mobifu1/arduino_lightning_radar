@@ -1,19 +1,72 @@
-//Lightning Radar by Arduino Mega & AS3935 Modul
-/*
-  LightningDetector.pde - AS3935 Franklin Lightning Sensor™ IC by AMS library demo code
-  Copyright (c) 2012 Raivis Rengelis (raivis [at] rrkb.lv). All rights reserved.
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; eitherre
-  version 3 of the License, or (at your option) any later version.
-  This library is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  Lesser General Public License for more details.
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-*/
+//Lightning Radar by Arduino Mega & Playing with Fusion Modul AS3935
+/***************************************************************************
+  File Name: as3935_lightning_i2c_nocal.ino
+  Processor/Platform: Arduino Uno R3 (tested)
+  Development Environment: Arduino 1.6.1
+
+  Designed for use with with Playing With Fusion AS3935 Lightning Sensor
+  Breakout: SEN-39001-R01. Demo shows how this lightning sensor can be brought
+  into an Arduino project without a bunch of calibration needed. This is
+  because each board is tested calibrated prior to being shipped, and the
+  cal value is written on the packaging.
+
+    SEN-39001-R01 (universal applications)
+    ---> http://www.playingwithfusion.com/productview.php?pdid=22
+
+  Copyright © 2015 Playing With Fusion, Inc.
+  SOFTWARE LICENSE AGREEMENT: This code is released under the MIT License.
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the "Software"),
+  to deal in the Software without restriction, including without limitation
+  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.
+* **************************************************************************
+  REVISION HISTORY:
+  Author    Date    Comments
+  J. Steinlage    2015Jul20       I2C release based on SPI example
+
+  Playing With Fusion, Inc. invests time and resources developing open-source
+  code. Please support Playing With Fusion and continued open-source
+  development by buying products from Playing With Fusion!
+
+* **************************************************************************
+  APPLICATION SPECIFIC NOTES (READ THIS!!!):
+  - This file configures then runs a program on an Arduino to interface with
+    an AS3935 Franklin Lightning Sensor manufactured by AMS.
+     - Configure Arduino
+     - Perform setup for AS3935 chip
+       --- capacitance registers for tuning (based on cal value provided)
+       --- configurations for your application specifics (indoor/outdoor, etc)
+     - read status/info from sensor
+     - Write formatted information to serial port
+  - Set configs for your specific needs using the #defines for wiring, and
+    review the setup() function for other settings (indoor/outdoor, for example)
+  - I2C specific note: This example uses the I2C interface via the I2C lib, not
+    the 'Wire' lib included with the Arduino IDE.
+
+  Circuit:
+     Arduino Uno   Arduino Mega  -->  SEN-39001: AS3935 Breakout
+     SDA:    SDA        SDA      -->  MOSI/SDA   (SDA is labeled on the bottom of the Arduino)
+     SCLK:   SCL        SCL      -->  SCK/SCL    (SCL is labeled on the bottom of the Arduino)
+     SI:     pin  9     pin 9    -->  SI (select interface; GND=SPI, VDD=I2C
+     IRQ:    pin  2     pin 2    -->  IRQ
+     GND:    GND        ''       -->  CS (pull CS to ground even though it's not used)
+     GND:    GND        ''       -->  GND
+     5V:     5V         ''       -->  Arduino I/O is at 5V, so power board from 5V. Can use 3.3V with Due, etc
+**************************************************************************/
 // This program is a demo of how to use most of the functions
 // of the library with a supported display modules.
 //
@@ -71,6 +124,7 @@ boolean menue_on = false;
 //Pin
 //#define LED A5// Pin of LED
 
+#include <TimerOne.h>
 //Lightning_Strikes
 int copy_strikes_count = 0;
 //activ,strenght,distance,age,x_pos,y_pos
@@ -141,42 +195,34 @@ boolean disturb = false;
 boolean simulate_on = false;
 boolean profile_indoor = false;
 boolean tick = false;
+
 //----------------------------------------------------------------
-#include <TimerOne.h>
-#include <SPI.h>
-#include <AS3935.h>
+// The AS3935 communicates via SPI or I2C.
+// This example uses the I2C interface via the I2C lib, not Wire lib
+#include "I2C.h"
+// include Playing With Fusion AXS3935 libraries
+#include "PWFusion_AS3935_I2C.h"
 
-//void printAS3935Registers();
+// interrupt trigger global var
+volatile int8_t AS3935_ISR_Trig = 0;
 
-// Function prototype that provides SPI transfer and is passed to
-// AS3935 to be used from within library, it is defined later in main sketch.
-// That is up to user to deal with specific implementation of SPI
-// Note that AS3935 library requires this function to have exactly this signature
-// and it can not be member function of any C++ class, which happens
-// to be almost any Arduino library
-// Please make sure your implementation of choice does not deal with CS pin,
-// library takes care about it on it's own
-byte SPItransfer(byte sendByte);
+// defines for hardware config
+#define SI_PIN               9
+#define IRQ_PIN              2        // digital pins 2 and 3 are available for interrupt capability
+#define AS3935_ADD           0x03     // x03 - standard PWF SEN-39001-R01 config
+#define AS3935_CAPACITANCE   72       // <-- SET THIS VALUE TO THE NUMBER LISTED ON YOUR BOARD 
 
-// Interrupt handler for AS3935 irqs
-// and flag variable that indicates interrupt has been triggered
-// Variables that get changed in interrupt routines need to be declared volatile
-// otherwise compiler can optimize them away, assuming they never get changed
-void AS3935Irq();
-volatile int AS3935IrqTriggered;
+// defines for general chip settings
+#define AS3935_INDOORS       1
+#define AS3935_OUTDOORS      1
+#define AS3935_DIST_DIS      0
+#define AS3935_DIST_EN       1
 
-// First parameter - SPI transfer function, second - Arduino pin used for CS
-// and finally third argument - Arduino pin used for IRQ
-// It is good idea to chose pin that has interrupts attached, that way one can use
-// attachInterrupt in sketch to detect interrupt
-// Library internally polls this pin when doing calibration, so being an interrupt pin
-// is not a requirement
+// prototypes
+void AS3935_ISR();
 
-//AS3935 AS3935(SPItransfer, SS, 2);//old default
-int PIN_IRQ = 2;//IRQ PIN of Chip
-int PIN_CS = 10;//Sensor CS PIN
-AS3935 AS3935(SPItransfer, PIN_CS, PIN_IRQ);
-boolean calibrated = true;
+PWF_AS3935_I2C  lightning0((uint8_t)IRQ_PIN, (uint8_t)SI_PIN, (uint8_t)AS3935_ADD);
+boolean calibrated = false;
 
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -189,67 +235,34 @@ void setup()
   tft.setBackColor(BLACK);
 
   //pinMode(LED, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.2-Beta", 0);
-  //Serial.begin(9600);
+  ScreenText(WHITE, 0, 10 , 2, "V0.3-Beta", 0);
   //------------------------------------------------------------------------------
-  // first begin, then set parameters
-  SPI.begin();
-  // NB! chip uses SPI MODE1
-  SPI.setDataMode(SPI_MODE1);
-  // NB! max SPI clock speed that chip supports is 2MHz,
-  // but never use 500kHz, because that will cause interference
-  // to lightning detection circuit
-  SPI.setClockDivider(SPI_CLOCK_DIV16);
-  // and chip is MSB first
-  SPI.setBitOrder(MSBFIRST);
-  // reset all internal register values to defaults
-  AS3935.reset();
-  // and run calibration
-  // if lightning detector can not tune tank circuit to required tolerance,
-  // calibration function will return false
-  if (!AS3935.calibrate()) {
-    //Serial.println("Tuning out of range, check your wiring, your sensor and make sure physics laws have not changed!");
-    ScreenText(WHITE, 0, 50 , 1, "Tuning out of range !", 0);
-    calibrated = false;
-  }
-  // since this is demo code, we just go on minding our own business and ignore the fact that someone divided by zero
-  // first let's turn on disturber indication and print some register values from AS3935
-  // tell AS3935 we are indoors, for outdoors use setOutdoors() function
-  AS3935.setOutdoors();
-  //  AS3935.calibrate
-  //  AS3935.powerDown
-  //  AS3935.powerUp
-  //  AS3935.interruptSource
-  //  AS3935.disableDisturbers
-  //  AS3935.enableDisturbers
-  //  AS3935.minimumLightnings
-  //  AS3935.lightningDistanceKm
-  //  AS3935.setIndoors
-  //  AS3935.setOutdoors
-  //  AS3935.getNoiseFloor
-  //  AS3935.setNoiseFloor
-  //  AS3935.getSpikeRejection
-  //  AS3935.setSpikeRejection
-  //  AS3935.getWatchdogThreshold
-  //  AS3935.setWatchdogThreshold
-  //  AS3935.clearStats
-  // turn on indication of distrubers, once you have AS3935 all tuned, you can turn those off with disableDisturbers()
-  AS3935.enableDisturbers();
-  printAS3935Registers();
-  AS3935IrqTriggered = 0;
-  // Using interrupts means you do not have to check for pin being set continiously, chip does that for you and
-  // notifies your code
-  // demo is written and tested on ChipKit MAX32, irq pin is connected to max32 pin 2, that corresponds to interrupt 1
-  // look up what pins can be used as interrupts on your specific board and how pins map to int numbers
+  //Serial.begin(9600);
+  //Serial.println("Playing With Fusion: AS3935 Lightning Sensor, SEN-39001-R01");
+  //Serial.println("beginning boot procedure....");
 
-  // ChipKit Max32 - irq connected to pin 2
-  //attachInterrupt(1, AS3935Irq, RISING);
-  int myIRQ = 0;//Mega Board
-  attachInterrupt(myIRQ, AS3935Irq, RISING);
-  // uncomment line below and comment out line above for Arduino Mega 2560, irq still connected to pin 2
-  // attachInterrupt(0,AS3935Irq,RISING);
+  // setup for the the I2C library: (enable pullups, set speed to 400kHz)
+  I2c.begin();
+  I2c.pullup(true);
+  I2c.setSpeed(1);
+  delay(2);
+
+  lightning0.AS3935_DefInit();   // set registers to default
+  // now update sensor cal for your application and power up chip
+  lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
+  //calibrated = true;
+  // AS3935_ManualCal Parameters:
+  //   --> capacitance, in pF (marked on package)
+  //   --> indoors/outdoors (AS3935_INDOORS:1 / AS3935_OUTDOORS:1)
+  //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
+  // function also powers up the chip
+
+  // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 )
+  attachInterrupt(0, AS3935_ISR, RISING);
+  lightning0.AS3935_PrintAllRegs();
+  AS3935_ISR_Trig = 0;           // clear trigger
   //-------------------------------------------------------------------------------------------
-  delay(5000);
+  delay(2000);
   tft.clrScr();
   tft.setBackColor(BLACK);
 
@@ -270,7 +283,6 @@ void setup()
   but6 = myButtons.addButton( 10,  170, 80,  30, "Calibrate");
   myButtons.disableButton(but6, true);
 
-
   tft.clrScr();
   tft.setBackColor(BLACK);
   myButtons.drawButton(but1);
@@ -283,73 +295,67 @@ void setup()
 //--------------------------------------------------------------
 void loop() {
 
-  // here we go into loop checking if interrupt has been triggered, which kind of defeats
-  // the whole purpose of interrupts, but in real life you could put your chip to sleep
-  // and lower power consumption or do other nifty things
-  if (AS3935IrqTriggered)  {
+  // This program only handles an AS3935 lightning sensor. It does nothing until
+  // an interrupt is detected on the IRQ pin.
+  while (0 == AS3935_ISR_Trig) {}
+  delay(5);
 
-    // reset the flag
-    AS3935IrqTriggered = 0;
-    // first step is to find out what caused interrupt
-    // as soon as we read interrupt cause register, irq pin goes low
-    int irqSource = AS3935.interruptSource();
-    // returned value is bitmap field, bit 0 - noise level too high, bit 2 - disturber detected, and finally bit 3 - lightning!
-    if (irqSource & 0b0001)
-      noise = true;
-    //Serial.println("Noise level too high, try adjusting noise floor");
+  // reset interrupt flag
+  AS3935_ISR_Trig = 0;
 
-    if (irqSource & 0b0100)
-      disturb = true;
-    //Serial.println("Disturber detected");
-
-    if (irqSource & 0b1000)  {
-      noise = false;
-      disturb = false;
-      // need to find how far that lightning stroke, function returns approximate distance in kilometers,
-      // where value 1 represents storm in detector's near victinity, and 63 - very distant, out of range stroke
-      // everything in between is just distance in kilometers
-      int strokeDistance = AS3935.lightningDistanceKm();
-
-      if (strokeDistance == 1) {
-        //Serial.println("Storm overhead, watch out!");
-      }
-
-      if (strokeDistance == 63) {
-        //Serial.println("Out of range lightning detected.");
-      }
-
-      if (strokeDistance < 63 && strokeDistance > 1) {
-        //Serial.print("Lightning detected ");
-        //Serial.print(strokeDistance, DEC);
-        //Serial.println(" kilometers away.");
-      }
-      if (strokeDistance < 64 && strokeDistance >= 0) {
-        //activ:0/1
-        //strenght:1-100
-        //distance=0-63km
-        //age=0-15min
-        //x:0-139 //position onn screen
-        //y:0-239 //position onn screen
-        for (int i = 0; i < 50 ; i++) {
-          if ( lightning_strike[i][0] == 0) {
-            lightning_strike[i][0] = 1;
-            lightning_strike[i][1] = 50;
-            lightning_strike[i][2] = strokeDistance;
-            lightning_strike[i][3] = lightning_timer;
-            long randNumber;
-            randNumber = random(160 - strokeDistance, 160 + strokeDistance);
-            lightning_strike[i][4] = int(randNumber);
-            lightning_strike[i][5] = int(230 - (strokeDistance * 3.0));
-            SetCircle(BLACK , last_xpos,  last_ypos, 8);
-            last_xpos = lightning_strike[i][4];
-            last_ypos = lightning_strike[i][5];
-            SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
-            break;
-          }
+  // now get interrupt source
+  uint8_t int_src = lightning0.AS3935_GetInterruptSrc();
+  if (0 == int_src)
+  {
+    //Serial.println("interrupt source result not expected");
+    noise = false;
+    disturb = false;
+  }
+  else if (1 == int_src)
+  {
+    uint8_t lightning_dist_km = lightning0.AS3935_GetLightningDistKm();
+    //Serial.print("Lightning detected! Distance to strike: ");
+    //Serial.print(lightning_dist_km);
+    //Serial.println(" kilometers");
+    if (lightning_dist_km < 64 && lightning_dist_km >= 0) {
+      //activ:0/1
+      //strenght:1-100
+      //distance=0-63km
+      //age=0-15min
+      //x:0-139 //position onn screen
+      //y:0-239 //position onn screen
+      for (int i = 0; i < 50 ; i++) {
+        if ( lightning_strike[i][0] == 0) {
+          lightning_strike[i][0] = 1;
+          lightning_strike[i][1] = 50;
+          lightning_strike[i][2] = lightning_dist_km;
+          lightning_strike[i][3] = lightning_timer;
+          long randNumber;
+          randNumber = random(160 - lightning_dist_km, 160 + lightning_dist_km);
+          lightning_strike[i][4] = int(randNumber);
+          lightning_strike[i][5] = int(230 - (lightning_dist_km * 3.0));
+          SetCircle(BLACK , last_xpos,  last_ypos, 8);
+          last_xpos = lightning_strike[i][4];
+          last_ypos = lightning_strike[i][5];
+          SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
+          break;
         }
       }
     }
+
   }
+  else if (2 == int_src)
+  {
+    //Serial.println("Disturber detected");
+    disturb = true;
+  }
+  else if (3 == int_src)
+  {
+    //Serial.println("Noise level too high");
+    noise = true;
+  }
+  //lightning0.AS3935_PrintAllRegs(); // for debug...
+
   //------------------------------------------------
   //addButton
   //drawButtons
@@ -400,7 +406,7 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          AS3935.setIndoors();
+          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_INDOORS, AS3935_DIST_EN);
           profile_indoor = true;
           menue_on = false;
         }
@@ -416,7 +422,7 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          AS3935.setOutdoors();
+          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
           profile_indoor = false;
           menue_on = false;
         }
@@ -471,7 +477,7 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          AS3935.reset();
+          lightning0.AS3935_DefInit();   // set registers to default
           menue_on = false;
         }
       }
@@ -758,33 +764,9 @@ void lightning_direction() {
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
-void printAS3935Registers()
-{
-  int noiseFloor = AS3935.getNoiseFloor();
-  int spikeRejection = AS3935.getSpikeRejection();
-  int watchdogThreshold = AS3935.getWatchdogThreshold();
-  ScreenText(WHITE, 0, 70 , 1, "Read Data from AS3935:", 0);
-  //Serial.print("Noise floor is: ");
-  //Serial.println(noiseFloor, DEC);
-  ScreenText(WHITE, 0, 90 , 1, "Noise floor is: " + noiseFloor, 0);
-  //Serial.print("Spike rejection is: ");
-  //Serial.println(spikeRejection, DEC);
-  ScreenText(WHITE, 0, 110 , 1, "Spike rejection is: " + spikeRejection, 0);
-  //Serial.print("Watchdog threshold is: ");
-  //Serial.println(watchdogThreshold, DEC);
-  ScreenText(WHITE, 0, 130 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
-}
-
-// this is implementation of SPI transfer that gets passed to AS3935
-// you can (hopefully) wrap any SPI implementation in this
-byte SPItransfer(byte sendByte)
-{
-  return SPI.transfer(sendByte);
-}
-
 // this is irq handler for AS3935 interrupts, has to return void and take no arguments
 // always make code in interrupt handlers fast and short
-void AS3935Irq()
+void AS3935_ISR()
 {
-  AS3935IrqTriggered = 1;
+  AS3935_ISR_Trig = 1;
 }
