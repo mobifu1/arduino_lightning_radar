@@ -65,7 +65,7 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&tft, &myTouch);
-int but1, but2, but3, but4 , pressed_button;
+int but1, but2, but3, but4 , but5, but6, pressed_button;
 boolean menue_on = false;
 
 //Pin
@@ -139,7 +139,7 @@ int last_ypos;
 boolean noise = false;
 boolean disturb = false;
 boolean simulate_on = false;
-boolean profile_indoor = true;
+boolean profile_indoor = false;
 boolean tick = false;
 //----------------------------------------------------------------
 #include <TimerOne.h>
@@ -158,7 +158,7 @@ boolean tick = false;
 // library takes care about it on it's own
 byte SPItransfer(byte sendByte);
 
-// Iterrupt handler for AS3935 irqs
+// Interrupt handler for AS3935 irqs
 // and flag variable that indicates interrupt has been triggered
 // Variables that get changed in interrupt routines need to be declared volatile
 // otherwise compiler can optimize them away, assuming they never get changed
@@ -173,9 +173,10 @@ volatile int AS3935IrqTriggered;
 // is not a requirement
 
 //AS3935 AS3935(SPItransfer, SS, 2);//old default
-int PIN_IRQ = 20;//IRQ PIN of Chip
-int PIN_CS = 21;//Sensor CS PIN
+int PIN_IRQ = 2;//IRQ PIN of Chip
+int PIN_CS = 10;//Sensor CS PIN
 AS3935 AS3935(SPItransfer, PIN_CS, PIN_IRQ);
+boolean calibrated = true;
 
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -206,9 +207,11 @@ void setup()
   // and run calibration
   // if lightning detector can not tune tank circuit to required tolerance,
   // calibration function will return false
-  if (!AS3935.calibrate())
+  if (!AS3935.calibrate()) {
     //Serial.println("Tuning out of range, check your wiring, your sensor and make sure physics laws have not changed!");
     ScreenText(WHITE, 0, 50 , 1, "Tuning out of range !", 0);
+    calibrated = false;
+  }
   // since this is demo code, we just go on minding our own business and ignore the fact that someone divided by zero
   // first let's turn on disturber indication and print some register values from AS3935
   // tell AS3935 we are indoors, for outdoors use setOutdoors() function
@@ -241,7 +244,7 @@ void setup()
 
   // ChipKit Max32 - irq connected to pin 2
   //attachInterrupt(1, AS3935Irq, RISING);
-  int myIRQ = 3;//Mega Board
+  int myIRQ = 0;//Mega Board
   attachInterrupt(myIRQ, AS3935Irq, RISING);
   // uncomment line below and comment out line above for Arduino Mega 2560, irq still connected to pin 2
   // attachInterrupt(0,AS3935Irq,RISING);
@@ -256,12 +259,16 @@ void setup()
   myButtons.setTextFont(SmallFont);
   myButtons.setButtonColors(VGA_WHITE, VGA_WHITE, VGA_WHITE, VGA_BLACK, VGA_BLACK);
   but1 = myButtons.addButton( 280,  200, 30,  30, "");
-  but2 = myButtons.addButton( 10,  50, 75,  30, "Indoor");
+  but2 = myButtons.addButton( 10,  50, 80,  30, "Indoor");
   myButtons.disableButton(but2, true);
-  but3 = myButtons.addButton( 10,  90, 75,  30, "Outdoor");
+  but3 = myButtons.addButton( 10,  90, 80,  30, "Outdoor");
   myButtons.disableButton(but3, true);
-  but4 = myButtons.addButton( 10,  10, 75,  30, "Simulate");
+  but4 = myButtons.addButton( 10,  10, 80,  30, "Simulate");
   myButtons.disableButton(but4, true);
+  but5 = myButtons.addButton( 10,  130, 80,  30, "Life x");
+  myButtons.disableButton(but5, true);
+  but6 = myButtons.addButton( 10,  170, 80,  30, "Calibrate");
+  myButtons.disableButton(but6, true);
 
 
   tft.clrScr();
@@ -373,9 +380,13 @@ void loop() {
           myButtons.drawButton(but2);
           myButtons.drawButton(but3);
           myButtons.drawButton(but4);
+          myButtons.drawButton(but5);
+          myButtons.drawButton(but6);
           myButtons.enableButton(but2, true);
           myButtons.enableButton(but3, true);
           myButtons.enableButton(but4, true);
+          myButtons.enableButton(but5, true);
+          myButtons.enableButton(but6, true);
         }
       }
       if (pressed_button == but2) {
@@ -383,6 +394,8 @@ void loop() {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
           myButtons.disableButton(but4, true);
+          myButtons.disableButton(but5, true);
+          myButtons.disableButton(but6, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -397,6 +410,8 @@ void loop() {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
           myButtons.disableButton(but4, true);
+          myButtons.disableButton(but5, true);
+          myButtons.disableButton(but6, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -411,6 +426,8 @@ void loop() {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
           myButtons.disableButton(but4, true);
+          myButtons.disableButton(but5, true);
+          myButtons.disableButton(but6, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -422,6 +439,39 @@ void loop() {
           else {
             simulate_on = false;
           }
+          menue_on = false;
+        }
+      }
+      if (pressed_button == but5) {
+        if (myButtons.buttonEnabled(but5)) {
+          myButtons.disableButton(but2, true);
+          myButtons.disableButton(but3, true);
+          myButtons.disableButton(but4, true);
+          myButtons.disableButton(but5, true);
+          myButtons.disableButton(but6, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but1);
+          myButtons.enableButton(but1, true);
+          time_factor++;
+          if (time_factor > 4) {
+            time_factor = 1;
+          }
+          menue_on = false;
+        }
+      }
+      if (pressed_button == but6) {
+        if (myButtons.buttonEnabled(but6)) {
+          myButtons.disableButton(but2, true);
+          myButtons.disableButton(but3, true);
+          myButtons.disableButton(but4, true);
+          myButtons.disableButton(but5, true);
+          myButtons.disableButton(but6, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but1);
+          myButtons.enableButton(but1, true);
+          AS3935.reset();
           menue_on = false;
         }
       }
@@ -538,11 +588,13 @@ void refresh_display() {
       tick = true;
     }
 
+    ScreenText(WHITE, 230, 160 , 1, "Life x " + String(time_factor), 0);
+
     if (profile_indoor == true) {
-      ScreenText(WHITE, 230, 160 , 1, "Indoor", 0);
+      ScreenText(WHITE, 230, 140 , 1, "Indoor", 0);
     }
     else {
-      ScreenText(WHITE, 230, 160 , 1, "Outdoor", 0);
+      ScreenText(WHITE, 230, 140 , 1, "Outdoor", 0);
     }
 
     ScreenText(WHITE, 40, 59 , 1, "60km", 0);
@@ -566,6 +618,15 @@ void refresh_display() {
     int lightning_age;
     int strikes_count = 0;
     //-----------------------------------------------------------
+    if (calibrated == false) {
+      ScreenText(WHITE, 20, 180 , 1, "Cal !", 0);
+      SetFilledCircle(RED , 10,  185, 2);
+    }
+    else {
+      ScreenText(BLACK, 20, 180 , 1, "Cal !", 0);
+      SetFilledCircle(BLACK , 10,  185, 2);
+    }
+
     if (noise == true ) {
       ScreenText(WHITE, 20, 200 , 1, "Noise !", 0);
       SetFilledCircle(RED , 10,  205, 2);
@@ -628,9 +689,9 @@ void refresh_display() {
     }
     //-------------------------------------------------------------------------------
     //count strikes
-    ScreenText(WHITE, 80, 10 , 1,  "Lightning Strikes: ", 0);
+    ScreenText(WHITE, 80, 10 , 1,  "Lightning Strikes:", 0);
     if (copy_strikes_count != strikes_count) {
-      SetFilledRect(BLACK, 230, 10, 280, 20);
+      SetFilledRect(BLACK, 230, 10, 250, 20);
       ScreenText(WHITE, 230, 10 , 1,  String(strikes_count), 0);
       copy_strikes_count = strikes_count;
     }
