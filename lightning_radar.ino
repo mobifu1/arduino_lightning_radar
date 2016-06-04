@@ -356,7 +356,7 @@ void loop() {
     //Serial.print("Lightning detected! Distance to strike: ");
     //Serial.print(lightning_dist_km);
     //Serial.println(" kilometers");
-    if (lightning_dist_km < 64 && lightning_dist_km >= 0) {
+    if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
       //activ:0/1
       //strenght:1-100
       //distance=0-63km
@@ -373,7 +373,7 @@ void loop() {
           long randNumber;
           randNumber = random(160 - lightning_dist_km, 160 + lightning_dist_km);
           lightning_strike[i][4] = int(randNumber);
-          lightning_strike[i][5] = int(230 - (lightning_dist_km * 3.0));
+          lightning_strike[i][5] = int(230 - (lightning_dist_km * 4.0));
           SetCircle(BLACK , last_xpos,  last_ypos, 8);
           last_xpos = lightning_strike[i][4];
           last_ypos = lightning_strike[i][5];
@@ -597,7 +597,7 @@ void simulate_strikes() {
     disturb = false;
   }
   if (lightning_timer < 250) {
-    long randNumber2 = random(0, 63);
+    long randNumber2 = random(0, 45);
     long randNumber3 = random(20, 100);
     for (int i = 0; i < 50 ; i++) {
       if ( lightning_strike[i][0] == 0) {
@@ -609,7 +609,7 @@ void simulate_strikes() {
         long randNumber;
         randNumber = random(160 - lightning_strike[i][2], 160 + lightning_strike[i][2]);
         lightning_strike[i][4] = int(randNumber);
-        lightning_strike[i][5] = int(230 - (lightning_strike[i][2] * 3.0));//235
+        lightning_strike[i][5] = int(230 - (lightning_strike[i][2] * 4.0));//235
         SetCircle(BLACK , last_xpos,  last_ypos, 8);
         last_xpos = lightning_strike[i][4];
         last_ypos = lightning_strike[i][5];
@@ -649,9 +649,9 @@ void refresh_display() {
       ScreenText(WHITE, 230, 140 , 1, "Outdoor", 0);
     }
 
-    ScreenText(WHITE, 40, 59 , 1, "60km", 0);
-    ScreenText(WHITE, 67, 119 , 1, "40km", 0);
-    ScreenText(WHITE, 93, 179 , 1, "20km", 0);
+    ScreenText(WHITE, 40, 50 , 1, "45km", 0);
+    ScreenText(WHITE, 67, 110 , 1, "30km", 0);
+    ScreenText(WHITE, 93, 170 , 1, "15km", 0);
 
     if (last_xpos > 0 && last_ypos > 0) {
       SetCircle(BLACK , last_xpos,  last_ypos, 8); //display flackert wenn koordinaten ausserhalb vom display
@@ -828,7 +828,7 @@ void lightning_direction() {
   }
 
   if (stats == true) {
-    int value = lightning_oldest - lightning_newest; //Statistics
+    int value = lightning_oldest - lightning_newest; //age of ligtnings:Statistics
     if (value >= 0 && value < 60) {
       ScreenText(WHITE, 250, 10 , 1, "/" + String(value) + "sec ", 0);
     }
