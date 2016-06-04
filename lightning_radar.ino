@@ -75,7 +75,6 @@
 //
 // This program requires the UTFT library.
 // web: http://www.henningkarlsen.com/electronics
-#include <UTFT.h>
 
 // This program requires both the UTFT and UTouch libraries
 // in addition to the UTFT_Buttons add-on library.
@@ -235,10 +234,11 @@ boolean tick = false;
 volatile int8_t AS3935_ISR_Trig = 0;
 
 // defines for hardware config
-#define SI_PIN               9
-#define IRQ_PIN              2        // digital pins 2 and 3 are available for interrupt capability
+#define SI_PIN               18
+#define IRQ_PIN              19        // digital pins 2,3,21,20,19,18 are available for interrupt capability
 #define AS3935_ADD           0x03     // x03 - standard PWF SEN-39001-R01 config
 #define AS3935_CAPACITANCE   72       // <-- SET THIS VALUE TO THE NUMBER LISTED ON YOUR BOARD 
+//Mega Board: sda:20, scl:21, irq:19, si:18
 
 // defines for general chip settings
 #define AS3935_INDOORS       1
@@ -261,18 +261,24 @@ void setup()
   tft.clrScr();
   tft.setBackColor(BLACK);
 
+  myTouch.InitTouch(1);
+  myTouch.setPrecision(PREC_MEDIUM);
+  delay(100);
+
   //pinMode(LED, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.3-Beta", 0);
+  ScreenText(WHITE, 0, 10 , 2, "V0.4-Beta", 0);
+  ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
-  Serial.println("Playing With Fusion: AS3935 Lightning Sensor, SEN-39001-R01");
-  Serial.println("beginning boot procedure....");
+  //Serial.println("Playing With Fusion: AS3935 Lightning Sensor, SEN-39001-R01");
+  //Serial.println("beginning boot procedure....");
 
   // setup for the the I2C library: (enable pullups, set speed to 400kHz)
   I2c.begin();
   I2c.pullup(true);
   I2c.setSpeed(1);
   delay(2);
+  ScreenText(WHITE, 0, 70 , 1, "Init Serial & I2C", 0);
 
   lightning0.AS3935_DefInit();   // set registers to default
   // now update sensor cal for your application and power up chip
@@ -284,25 +290,22 @@ void setup()
   //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
   // function also powers up the chip
 
-  // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 )
-  attachInterrupt(0, AS3935_ISR, RISING);
+  // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
+  attachInterrupt(4, AS3935_ISR, RISING);
   // lightning0.AS3935_PrintAllRegs();
   AS3935_ISR_Trig = 0;           // clear trigger
 
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  ScreenText(WHITE, 0, 50 , 1, "Read Data from AS3935:", 0);
-  ScreenText(WHITE, 0, 70 , 1, "Noise floor is: " + noiseFloor, 0);
-  ScreenText(WHITE, 0, 90 , 1, "Spike rejection is: " + spikeRejection, 0);
-  ScreenText(WHITE, 0, 110 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
+  ScreenText(WHITE, 0, 90 , 1, "Init AS3935", 0);
+  ScreenText(WHITE, 0, 110 , 1, "Noise floor is: " + noiseFloor, 0);
+  ScreenText(WHITE, 0, 130 , 1, "Spike rejection is: " + spikeRejection, 0);
+  ScreenText(WHITE, 0, 150 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
   //-------------------------------------------------------------------------------------------
   delay(5000);
   tft.clrScr();
   tft.setBackColor(BLACK);
-
-  myTouch.InitTouch(1);
-  myTouch.setPrecision(PREC_MEDIUM);
 
   myButtons.setTextFont(SmallFont);
   myButtons.setButtonColors(VGA_WHITE, VGA_WHITE, VGA_WHITE, VGA_BLACK, VGA_BLACK);
