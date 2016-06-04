@@ -127,6 +127,7 @@ boolean menue_on = false;
 #include <TimerOne.h>
 //Lightning_Strikes
 int copy_strikes_count = 0;
+int strikes_count = 0;
 //activ,strenght,distance,age,x_pos,y_pos
 //activ:0/1
 //strenght:1-100
@@ -188,12 +189,14 @@ uint16_t lightning_strike[50][6] = {
 };
 int lightning_timer = 0;
 int time_factor = 1;
+int last_stroke_index;//position on table
 int last_xpos;
 int last_ypos;
 boolean noise = false;
 boolean disturb = false;
 boolean simulate_on = false;
 boolean profile_indoor = false;
+boolean stats = false;
 boolean tick = false;
 
 //----------------------------------------------------------------
@@ -202,6 +205,31 @@ boolean tick = false;
 #include "I2C.h"
 // include Playing With Fusion AXS3935 libraries
 #include "PWFusion_AS3935_I2C.h"
+
+//  PWF_AS3935_I2C(uint8_t IRQx, uint8_t SIx, uint8_t DEVADDx);
+//  AS3935_ManualCal(uint8_t capacitance, uint8_t location, uint8_t disturber);
+//  AS3935_DefInit(void);
+//  AS3935_PowerUp(void);
+//  AS3935_PowerDown(void);
+//  AS3935_DisturberEn(void);
+//  AS3935_DisturberDis(void);
+//  AS3935_SetIRQ_Output_Source(uint8_t irq_select);
+//  AS3935_SetTuningCaps(uint8_t cap_val);
+//  AS3935_GetInterruptSrc(void);
+//  AS3935_GetLightningDistKm(void);
+//  AS3935_GetStrikeEnergyRaw(void);
+//  AS3935_SetMinStrikes(uint8_t min_strk);
+//  AS3935_ClearStatistics(void);
+//  AS3935_SetIndoors(void);
+//  AS3935_SetOutdoors(void);
+//  AS3935_GetNoiseFloorLvl(void);
+//  AS3935_SetNoiseFloorLvl(uint8_t nf_sel);
+//  AS3935_GetWatchdogThreshold(void);
+//  AS3935_SetWatchdogThreshold(uint8_t wdth);
+//  AS3935_GetSpikeRejection(void);
+//  AS3935_SetSpikeRejection(uint8_t srej);
+//  AS3935_SetLCO_FDIV(uint8_t fdiv);
+//  AS3935_PrintAllRegs(void);
 
 // interrupt trigger global var
 volatile int8_t AS3935_ISR_Trig = 0;
@@ -223,7 +251,6 @@ void AS3935_ISR();
 
 PWF_AS3935_I2C  lightning0((uint8_t)IRQ_PIN, (uint8_t)SI_PIN, (uint8_t)AS3935_ADD);
 boolean calibrated = false;
-
 //--------------------------------------------------------------
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -237,9 +264,9 @@ void setup()
   //pinMode(LED, OUTPUT);
   ScreenText(WHITE, 0, 10 , 2, "V0.3-Beta", 0);
   //------------------------------------------------------------------------------
-  //Serial.begin(9600);
-  //Serial.println("Playing With Fusion: AS3935 Lightning Sensor, SEN-39001-R01");
-  //Serial.println("beginning boot procedure....");
+  Serial.begin(9600);
+  Serial.println("Playing With Fusion: AS3935 Lightning Sensor, SEN-39001-R01");
+  Serial.println("beginning boot procedure....");
 
   // setup for the the I2C library: (enable pullups, set speed to 400kHz)
   I2c.begin();
@@ -250,7 +277,7 @@ void setup()
   lightning0.AS3935_DefInit();   // set registers to default
   // now update sensor cal for your application and power up chip
   lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
-  //calibrated = true;
+  calibrated = true;
   // AS3935_ManualCal Parameters:
   //   --> capacitance, in pF (marked on package)
   //   --> indoors/outdoors (AS3935_INDOORS:1 / AS3935_OUTDOORS:1)
@@ -259,10 +286,18 @@ void setup()
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 )
   attachInterrupt(0, AS3935_ISR, RISING);
-  lightning0.AS3935_PrintAllRegs();
+  // lightning0.AS3935_PrintAllRegs();
   AS3935_ISR_Trig = 0;           // clear trigger
+
+  int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
+  int spikeRejection = lightning0.AS3935_GetSpikeRejection();
+  int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
+  ScreenText(WHITE, 0, 50 , 1, "Read Data from AS3935:", 0);
+  ScreenText(WHITE, 0, 70 , 1, "Noise floor is: " + noiseFloor, 0);
+  ScreenText(WHITE, 0, 90 , 1, "Spike rejection is: " + spikeRejection, 0);
+  ScreenText(WHITE, 0, 110 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
   //-------------------------------------------------------------------------------------------
-  delay(2000);
+  delay(5000);
   tft.clrScr();
   tft.setBackColor(BLACK);
 
@@ -280,7 +315,7 @@ void setup()
   myButtons.disableButton(but4, true);
   but5 = myButtons.addButton( 10,  130, 80,  30, "Life x");
   myButtons.disableButton(but5, true);
-  but6 = myButtons.addButton( 10,  170, 80,  30, "Calibrate");
+  but6 = myButtons.addButton( 10,  170, 80,  30, "Stats");
   myButtons.disableButton(but6, true);
 
   tft.clrScr();
@@ -313,6 +348,7 @@ void loop() {
   }
   else if (1 == int_src)
   {
+    uint32_t lightning_energy = lightning0.AS3935_GetStrikeEnergyRaw();
     uint8_t lightning_dist_km = lightning0.AS3935_GetLightningDistKm();
     //Serial.print("Lightning detected! Distance to strike: ");
     //Serial.print(lightning_dist_km);
@@ -326,8 +362,9 @@ void loop() {
       //y:0-239 //position onn screen
       for (int i = 0; i < 50 ; i++) {
         if ( lightning_strike[i][0] == 0) {
+          last_stroke_index = i;
           lightning_strike[i][0] = 1;
-          lightning_strike[i][1] = 50;
+          lightning_strike[i][1] = uint16_t(lightning_energy / 6000); //600000eV/6000=100%
           lightning_strike[i][2] = lightning_dist_km;
           lightning_strike[i][3] = lightning_timer;
           long randNumber;
@@ -377,7 +414,7 @@ void loop() {
     {
       pressed_button = myButtons.checkButtons();
 
-      if (pressed_button == but1) {
+      if (pressed_button == but1) {//Menue
         if (myButtons.buttonEnabled(but1)) {
           menue_on = true;
           myButtons.disableButton(but1, true);
@@ -395,7 +432,7 @@ void loop() {
           myButtons.enableButton(but6, true);
         }
       }
-      if (pressed_button == but2) {
+      if (pressed_button == but2) {//Indoor
         if (myButtons.buttonEnabled(but2)) {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
@@ -406,12 +443,12 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_INDOORS, AS3935_DIST_EN);
+          lightning0.AS3935_SetIndoors();
           profile_indoor = true;
           menue_on = false;
         }
       }
-      if (pressed_button == but3) {
+      if (pressed_button == but3) {//outdoor
         if (myButtons.buttonEnabled(but3)) {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
@@ -422,12 +459,12 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
+          lightning0.AS3935_SetOutdoors();
           profile_indoor = false;
           menue_on = false;
         }
       }
-      if (pressed_button == but4) {
+      if (pressed_button == but4) {//Simulate
         if (myButtons.buttonEnabled(but4)) {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
@@ -448,7 +485,7 @@ void loop() {
           menue_on = false;
         }
       }
-      if (pressed_button == but5) {
+      if (pressed_button == but5) {//Life Factor
         if (myButtons.buttonEnabled(but5)) {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
@@ -466,7 +503,7 @@ void loop() {
           menue_on = false;
         }
       }
-      if (pressed_button == but6) {
+      if (pressed_button == but6) {//Statistik
         if (myButtons.buttonEnabled(but6)) {
           myButtons.disableButton(but2, true);
           myButtons.disableButton(but3, true);
@@ -477,7 +514,12 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          lightning0.AS3935_DefInit();   // set registers to default
+          if (stats == false) {
+            stats  = true;
+          }
+          else {
+            stats  = false;
+          }
           menue_on = false;
         }
       }
@@ -552,12 +594,13 @@ void simulate_strikes() {
     disturb = false;
   }
   if (lightning_timer < 250) {
-    long randNumber2;
-    randNumber2 = random(0, 63);
+    long randNumber2 = random(0, 63);
+    long randNumber3 = random(20, 100);
     for (int i = 0; i < 50 ; i++) {
       if ( lightning_strike[i][0] == 0) {
+        last_stroke_index = i;
         lightning_strike[i][0] = 1;
-        lightning_strike[i][1] = 50;
+        lightning_strike[i][1] = randNumber3;//from 0 to 100%
         lightning_strike[i][2] = int(randNumber2);//dist
         lightning_strike[i][3] = lightning_timer;
         long randNumber;
@@ -586,11 +629,11 @@ void refresh_display() {
   if (menue_on == false) {
 
     if (tick == true) {
-      SetFilledCircle(WHITE , 10,  15, 2);
+      SetFilledCircle(WHITE , 12,  15, 2);
       tick = false;
     }
     else {
-      SetFilledCircle(BLACK , 10,  15, 2);
+      SetFilledCircle(BLACK , 12,  15, 2);
       tick = true;
     }
 
@@ -622,7 +665,7 @@ void refresh_display() {
     }
     //------Scale-----------------------------------------------
     int lightning_age;
-    int strikes_count = 0;
+    strikes_count = 0;
     //-----------------------------------------------------------
     if (calibrated == false) {
       ScreenText(WHITE, 20, 180 , 1, "Cal !", 0);
@@ -690,6 +733,7 @@ void refresh_display() {
         if ( lightning_age >= (240 * time_factor)) {
           SetFilledCircle(BLACK, lightning_strike[i][4], lightning_strike[i][5] , 2);
           lightning_strike[i][0] = 0; //deactiv
+          lightning_strike[i][1] = 0; //energy
         }
       }
     }
@@ -697,7 +741,7 @@ void refresh_display() {
     //count strikes
     ScreenText(WHITE, 80, 10 , 1,  "Lightning Strikes:", 0);
     if (copy_strikes_count != strikes_count) {
-      SetFilledRect(BLACK, 230, 10, 250, 20);
+      SetFilledRect(BLACK, 230, 10, 249, 20);
       ScreenText(WHITE, 230, 10 , 1,  String(strikes_count), 0);
       copy_strikes_count = strikes_count;
     }
@@ -719,7 +763,25 @@ void refresh_display() {
       SetFilledCircle(BLACK, lightning_strike[array_position][4], lightning_strike[array_position][5] , 2);
       lightning_strike[array_position][0] = 0;
     }
+    lightning_energy();
     lightning_direction();
+  }
+}
+//--------------------------------------------------------------
+void lightning_energy() {
+
+  uint16_t stroke_energy = lightning_strike[last_stroke_index][1]; //from 0 to 100%
+  if (stroke_energy > 100) {
+    stroke_energy = 100;
+  }
+  if (stroke_energy < 0) {
+    stroke_energy = 0;
+  }
+  ScreenText(WHITE, 5, 148 , 1, "eV", 0);
+  SetRect(WHITE , 10, 40, 15, 142);//Frame
+  SetFilledRect(BLACK , 11, 41, 14, 141);//clear content
+  if (stroke_energy > 0) {
+    SetFilledRect(RED , 11, 141 - stroke_energy, 14, 141); //set bargraph
   }
 }
 //--------------------------------------------------------------
@@ -760,6 +822,17 @@ void lightning_direction() {
   if (lightning_strike[array_position_oldest][5] == lightning_strike[array_position_newest][5]) {
     SetTriangle(BLACK , 200, 200, 210, 200, 205, 210);
     SetTriangle(BLACK , 200, 210, 210, 210, 205, 200);
+  }
+
+  if (stats == true) {
+    int value = lightning_oldest - lightning_newest; //Statistics
+    if (value >= 0 && value < 60) {
+      ScreenText(WHITE, 250, 10 , 1, "/" + String(value) + "sec ", 0);
+    }
+    if (value >= 60 && value  < 3600) {
+      value = value / 60;//min
+      ScreenText(WHITE, 250, 10 , 1, "/" + String(value) + "min ", 0);
+    }
   }
 }
 //--------------------------------------------------------------
