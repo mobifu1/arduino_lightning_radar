@@ -117,11 +117,11 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&tft, &myTouch);
-int but1, but2, but3, but4 , but5, but6, pressed_button;
+int but1, but2, but3, but4 , but5, but6, but7, pressed_button;
 boolean menue_on = false;
 
 //Pin
-//#define LED A5// Pin of LED
+#define Beep A5// Pin of LED
 
 #include <TimerOne.h>
 //Lightning_Strikes
@@ -195,6 +195,7 @@ boolean noise = false;
 boolean disturb = false;
 boolean simulate_on = false;
 boolean profile_indoor = false;
+boolean sound_on = false;
 boolean stats = false;
 boolean tick = false;
 
@@ -265,7 +266,7 @@ void setup()
   myTouch.setPrecision(PREC_MEDIUM);
   delay(100);
 
-  //pinMode(LED, OUTPUT);
+  pinMode(Beep, OUTPUT);
   ScreenText(WHITE, 0, 10 , 2, "V0.4-Beta", 0);
   ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
@@ -310,16 +311,18 @@ void setup()
   myButtons.setTextFont(SmallFont);
   myButtons.setButtonColors(VGA_WHITE, VGA_WHITE, VGA_WHITE, VGA_BLACK, VGA_BLACK);
   but1 = myButtons.addButton( 280,  200, 30,  30, "");
-  but2 = myButtons.addButton( 10,  50, 80,  30, "Indoor");
+  but2 = myButtons.addButton( 10,  45, 80,  30, "Indoor");
   myButtons.disableButton(but2, true);
-  but3 = myButtons.addButton( 10,  90, 80,  30, "Outdoor");
+  but3 = myButtons.addButton( 10,  85, 80,  30, "Outdoor");
   myButtons.disableButton(but3, true);
-  but4 = myButtons.addButton( 10,  10, 80,  30, "Simulate");
+  but4 = myButtons.addButton( 10,  5, 80,  30, "Simulate");
   myButtons.disableButton(but4, true);
-  but5 = myButtons.addButton( 10,  130, 80,  30, "Life x");
+  but5 = myButtons.addButton( 10,  125, 80,  30, "Life x");
   myButtons.disableButton(but5, true);
-  but6 = myButtons.addButton( 10,  170, 80,  30, "Stats");
+  but6 = myButtons.addButton( 10,  165, 80,  30, "Stats");
   myButtons.disableButton(but6, true);
+  but7 = myButtons.addButton( 10,  205, 80,  30, "Sound");
+  myButtons.disableButton(but7, true);
 
   tft.clrScr();
   tft.setBackColor(BLACK);
@@ -378,6 +381,13 @@ void loop() {
           last_xpos = lightning_strike[i][4];
           last_ypos = lightning_strike[i][5];
           SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
+          if (sound_on == true) {
+            //do something with piezo
+            analogWrite(Beep, 50);// Almost any value can be used except 0 and 255
+            delay(10);             // wait for a delayms ms
+            analogWrite(Beep, 0);  // 0 turns it off
+            delay(10);
+          }
           break;
         }
       }
@@ -428,11 +438,13 @@ void loop() {
           myButtons.drawButton(but4);
           myButtons.drawButton(but5);
           myButtons.drawButton(but6);
+          myButtons.drawButton(but7);
           myButtons.enableButton(but2, true);
           myButtons.enableButton(but3, true);
           myButtons.enableButton(but4, true);
           myButtons.enableButton(but5, true);
           myButtons.enableButton(but6, true);
+          myButtons.enableButton(but7, true);
         }
       }
       if (pressed_button == but2) {//Indoor
@@ -442,6 +454,7 @@ void loop() {
           myButtons.disableButton(but4, true);
           myButtons.disableButton(but5, true);
           myButtons.disableButton(but6, true);
+          myButtons.disableButton(but7, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -458,6 +471,7 @@ void loop() {
           myButtons.disableButton(but4, true);
           myButtons.disableButton(but5, true);
           myButtons.disableButton(but6, true);
+          myButtons.disableButton(but7, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -474,6 +488,7 @@ void loop() {
           myButtons.disableButton(but4, true);
           myButtons.disableButton(but5, true);
           myButtons.disableButton(but6, true);
+          myButtons.disableButton(but7, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -495,6 +510,7 @@ void loop() {
           myButtons.disableButton(but4, true);
           myButtons.disableButton(but5, true);
           myButtons.disableButton(but6, true);
+          myButtons.disableButton(but7, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -513,6 +529,7 @@ void loop() {
           myButtons.disableButton(but4, true);
           myButtons.disableButton(but5, true);
           myButtons.disableButton(but6, true);
+          myButtons.disableButton(but7, true);
           tft.clrScr();
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
@@ -522,6 +539,27 @@ void loop() {
           }
           else {
             stats  = false;
+          }
+          menue_on = false;
+        }
+      }
+      if (pressed_button == but7) {//Sound
+        if (myButtons.buttonEnabled(but6)) {
+          myButtons.disableButton(but2, true);
+          myButtons.disableButton(but3, true);
+          myButtons.disableButton(but4, true);
+          myButtons.disableButton(but5, true);
+          myButtons.disableButton(but6, true);
+          myButtons.disableButton(but7, true);
+          tft.clrScr();
+          tft.setBackColor(BLACK);
+          myButtons.drawButton(but1);
+          myButtons.enableButton(but1, true);
+          if (sound_on == false) {
+            sound_on  = true;
+          }
+          else {
+            sound_on  = false;
           }
           menue_on = false;
         }
@@ -614,6 +652,13 @@ void simulate_strikes() {
         last_xpos = lightning_strike[i][4];
         last_ypos = lightning_strike[i][5];
         SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
+        if (sound_on == true) {
+          //do something with piezo
+          analogWrite(Beep, 50);// Almost any value can be used except 0 and 255
+          delay(10);             // wait for a delayms ms
+          analogWrite(Beep, 0);  // 0 turns it off
+          delay(10);
+        }
         break;
         //activ,strenght,distance,age,x_pos,y_pos
         //activ:0/1
@@ -638,6 +683,10 @@ void refresh_display() {
     else {
       SetFilledCircle(BLACK , 12,  15, 2);
       tick = true;
+    }
+
+    if (sound_on == true) {
+      ScreenText(WHITE, 230, 120 , 1, "Sound On", 0);
     }
 
     ScreenText(WHITE, 230, 160 , 1, "Life x " + String(time_factor), 0);
