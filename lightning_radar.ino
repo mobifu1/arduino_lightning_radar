@@ -121,7 +121,7 @@ int but1, but2, but3, but4 , but5, but6, but7, pressed_button;
 boolean menue_on = false;
 
 //Pin
-#define Beep A5// Pin of LED
+#define Beep A5// Pin of Piezo
 
 #include <TimerOne.h>
 //Lightning_Strikes
@@ -383,10 +383,7 @@ void loop() {
           SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
           if (sound_on == true) {
             //do something with piezo
-            analogWrite(Beep, 50);// Almost any value can be used except 0 and 255
-            delay(10);             // wait for a delayms ms
-            analogWrite(Beep, 0);  // 0 turns it off
-            delay(10);
+            tone(Beep, 1000, 50);
           }
           break;
         }
@@ -654,10 +651,7 @@ void simulate_strikes() {
         SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
         if (sound_on == true) {
           //do something with piezo
-          analogWrite(Beep, 50);// Almost any value can be used except 0 and 255
-          delay(10);             // wait for a delayms ms
-          analogWrite(Beep, 0);  // 0 turns it off
-          delay(10);
+          tone(Beep, 1000, 50);//pin,hertz,duration
         }
         break;
         //activ,strenght,distance,age,x_pos,y_pos
