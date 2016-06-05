@@ -257,7 +257,6 @@ boolean calibrated = false;
 //--------------------------------------------------------------
 void setup()
 {
-  load_values();//load value from eeprom
   // Setup the LCD
   tft.InitLCD();//(oriantation:90)
   tft.clrScr();
@@ -291,6 +290,8 @@ void setup()
   //   --> indoors/outdoors (AS3935_INDOORS:1 / AS3935_OUTDOORS:1)
   //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
   // function also powers up the chip
+  load_values();//load value from eeprom
+  ScreenText(WHITE, 0, 90 , 1, "Load Values from EEPROM", 0);
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
   attachInterrupt(4, AS3935_ISR, RISING);
@@ -300,10 +301,10 @@ void setup()
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  ScreenText(WHITE, 0, 90 , 1, "Init AS3935", 0);
-  ScreenText(WHITE, 0, 110 , 1, "Noise floor is: " + noiseFloor, 0);
-  ScreenText(WHITE, 0, 130 , 1, "Spike rejection is: " + spikeRejection, 0);
-  ScreenText(WHITE, 0, 150 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
+  ScreenText(WHITE, 0, 110 , 1, "Init AS3935", 0);
+  ScreenText(WHITE, 0, 130 , 1, "Noise floor is: " + noiseFloor, 0);
+  ScreenText(WHITE, 0, 150 , 1, "Spike rejection is: " + spikeRejection, 0);
+  ScreenText(WHITE, 0, 170 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
   //-------------------------------------------------------------------------------------------
   delay(5000);
   tft.clrScr();
@@ -331,6 +332,7 @@ void setup()
 
   Timer1.initialize(1000000);
   Timer1.attachInterrupt(refresh_display);
+
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
@@ -457,7 +459,7 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          lightning0.AS3935_SetIndoors();
+          //lightning0.AS3935_SetIndoors();
           //profile_indoor = true;
           EEPROM.write(0, 1);
           menue_on = false;
@@ -475,7 +477,7 @@ void loop() {
           tft.setBackColor(BLACK);
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
-          lightning0.AS3935_SetOutdoors();
+          //lightning0.AS3935_SetOutdoors();
           //profile_indoor = false;
           EEPROM.write(0, 0);
           menue_on = false;
@@ -582,9 +584,11 @@ void load_values () {
   value = EEPROM.read(0);//indoor/outdoor
   if (value == 0) {
     profile_indoor = false;
+    lightning0.AS3935_SetOutdoors();
   }
   if (value == 1) {
     profile_indoor = true;
+    lightning0.AS3935_SetIndoors();
   }
   value = EEPROM.read(1);//simulate
   if (value == 0) {
