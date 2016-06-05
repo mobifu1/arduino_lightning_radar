@@ -292,7 +292,7 @@ void setup()
   //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
   // function also powers up the chip
   load_values();//load value from eeprom
-  ScreenText(WHITE, 0, 90 , 1, "Load Values from EEPROM", 0);
+  ScreenText(WHITE, 0, 90 , 1, "Load Data from EEPROM", 0);
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
   attachInterrupt(4, AS3935_ISR, RISING);
@@ -463,7 +463,7 @@ void loop() {
           myButtons.enableButton(but1, true);
           //lightning0.AS3935_SetIndoors();
           //profile_indoor = true;
-          EEPROM.write(0, 1);
+          EEPROM.update(0, 1);
           menue_on = false;
         }
       }
@@ -481,7 +481,7 @@ void loop() {
           myButtons.enableButton(but1, true);
           //lightning0.AS3935_SetOutdoors();
           //profile_indoor = false;
-          EEPROM.write(0, 0);
+          EEPROM.update(0, 0);
           menue_on = false;
         }
       }
@@ -499,12 +499,12 @@ void loop() {
           myButtons.enableButton(but1, true);
           if (simulate_on == false) {
             simulate_on = true;
-            //EEPROM.write(1, 1);
+            //EEPROM.update(1, 1);
             lightning_timer = 0;
           }
           else {
             simulate_on = false;
-            //EEPROM.write(1, 0);
+            //EEPROM.update(1, 0);
           }
           menue_on = false;
         }
@@ -523,9 +523,9 @@ void loop() {
           myButtons.enableButton(but1, true);
           time_factor++;
           if (time_factor > 4) {
-            //time_factor = 1;
+            time_factor = 1;
           }
-          EEPROM.write(2, time_factor);
+          EEPROM.update(2, time_factor);
           menue_on = false;
         }
       }
@@ -543,11 +543,11 @@ void loop() {
           myButtons.enableButton(but1, true);
           if (stats == false) {
             //stats  = true;
-            EEPROM.write(3, 1);
+            EEPROM.update(3, 1);
           }
           else {
             //stats  = false;
-            EEPROM.write(3, 0);
+            EEPROM.update(3, 0);
           }
           menue_on = false;
         }
@@ -566,11 +566,11 @@ void loop() {
           myButtons.enableButton(but1, true);
           if (sound_on == false) {
             //sound_on  = true;
-            EEPROM.write(4, 1);
+            EEPROM.update(4, 1);
           }
           else {
             //sound_on  = false;
-            EEPROM.write(4, 0);
+            EEPROM.update(4, 0);
           }
           menue_on = false;
         }
