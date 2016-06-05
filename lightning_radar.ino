@@ -198,6 +198,7 @@ boolean profile_indoor = false;
 boolean sound_on = false;
 boolean stats = false;
 boolean tick = false;
+int total_strikes = 0;
 #include <EEPROM.h>
 //----------------------------------------------------------------
 // The AS3935 communicates via SPI or I2C.
@@ -363,6 +364,7 @@ void loop() {
     //Serial.print(lightning_dist_km);
     //Serial.println(" kilometers");
     if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
+      total_strikes++;
       //activ:0/1
       //strenght:1-100
       //distance=0-63km
@@ -686,6 +688,7 @@ void simulate_strikes() {
   if (lightning_timer < 250) {
     long randNumber2 = random(0, 45);
     long randNumber3 = random(20, 100);
+    total_strikes++;
     for (int i = 0; i < 50 ; i++) {
       if ( lightning_strike[i][0] == 0) {
         last_stroke_index = i;
@@ -719,6 +722,13 @@ void simulate_strikes() {
 }
 //--------------------------------------------------------------
 void refresh_display() {
+
+  //--------increment counter---------------------------------
+  lightning_timer++;
+  if (lightning_timer < 0) {
+    lightning_timer = 0;
+  }
+  //----------------------------------------------------------
 
   if (menue_on == false) {
 
@@ -756,11 +766,6 @@ void refresh_display() {
       simulate_strikes();
     }
 
-    //--------increment counter---------------------------------
-    lightning_timer++;
-    if (lightning_timer < 0) {
-      lightning_timer = 0;
-    }
     //------Scale-----------------------------------------------
     int lightning_age;
     strikes_count = 0;
@@ -797,9 +802,6 @@ void refresh_display() {
     //ScreenText(WHITE, 140, 10 , 1, String(lightning_timer), 0);
     SetLines(GREEN , 70, 40, 160 , 239);
     SetLines(GREEN , 250, 40, 160 , 239);
-    //  SetCircle(GREEN , 120,  319, 92);//20km
-    //  SetCircle(GREEN , 120,  319, 181);//40km
-    //  SetCircle(GREEN , 120,  319, 270);//60km
 
     //activ,strenght,distance,age,x_pos,y_pos
     //activ:0/1
@@ -838,11 +840,18 @@ void refresh_display() {
     //-------------------------------------------------------------------------------
     //count strikes
     ScreenText(WHITE, 80, 10 , 1,  "Lightning Strikes:", 0);
-    if (copy_strikes_count != strikes_count) {
-      SetFilledRect(BLACK, 230, 10, 249, 20);
-      ScreenText(WHITE, 230, 10 , 1,  String(strikes_count), 0);
-      copy_strikes_count = strikes_count;
+    if (strikes_count < 10) {
+      ScreenText(WHITE, 230, 10 , 1,  String(strikes_count) + " ", 0);
     }
+    else {
+      ScreenText(WHITE, 230, 10 , 1,  String(strikes_count), 0);
+    }
+
+    if (copy_strikes_count == 0 && strikes_count > 0) {//reset when new thunder storm starts
+      total_strikes = strikes_count;
+    }
+    ScreenText(WHITE, 180, 225 , 1,  "[" + String(total_strikes) + "]    ", 0);
+    copy_strikes_count = strikes_count;
     //-------------------------------------------------------------------------------
     //clear the oldest lightning when array full
     if ( lightning_strike[49][0] == 1) {
