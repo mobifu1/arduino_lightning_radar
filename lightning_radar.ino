@@ -198,7 +198,7 @@ boolean profile_indoor = false;
 boolean sound_on = false;
 boolean stats = false;
 boolean tick = false;
-
+#include <EEPROM.h>
 //----------------------------------------------------------------
 // The AS3935 communicates via SPI or I2C.
 // This example uses the I2C interface via the I2C lib, not Wire lib
@@ -257,6 +257,7 @@ boolean calibrated = false;
 //--------------------------------------------------------------
 void setup()
 {
+  load_values();//load value from eeprom
   // Setup the LCD
   tft.InitLCD();//(oriantation:90)
   tft.clrScr();
@@ -457,7 +458,8 @@ void loop() {
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
           lightning0.AS3935_SetIndoors();
-          profile_indoor = true;
+          //profile_indoor = true;
+          EEPROM.write(0, 1);
           menue_on = false;
         }
       }
@@ -474,7 +476,8 @@ void loop() {
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
           lightning0.AS3935_SetOutdoors();
-          profile_indoor = false;
+          //profile_indoor = false;
+          EEPROM.write(0, 0);
           menue_on = false;
         }
       }
@@ -492,10 +495,12 @@ void loop() {
           myButtons.enableButton(but1, true);
           if (simulate_on == false) {
             simulate_on = true;
+            //EEPROM.write(1, 1);
             lightning_timer = 0;
           }
           else {
             simulate_on = false;
+            //EEPROM.write(1, 0);
           }
           menue_on = false;
         }
@@ -514,8 +519,9 @@ void loop() {
           myButtons.enableButton(but1, true);
           time_factor++;
           if (time_factor > 4) {
-            time_factor = 1;
+            //time_factor = 1;
           }
+          EEPROM.write(2, time_factor);
           menue_on = false;
         }
       }
@@ -532,10 +538,12 @@ void loop() {
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
           if (stats == false) {
-            stats  = true;
+            //stats  = true;
+            EEPROM.write(3, 1);
           }
           else {
-            stats  = false;
+            //stats  = false;
+            EEPROM.write(3, 0);
           }
           menue_on = false;
         }
@@ -553,15 +561,55 @@ void loop() {
           myButtons.drawButton(but1);
           myButtons.enableButton(but1, true);
           if (sound_on == false) {
-            sound_on  = true;
+            //sound_on  = true;
+            EEPROM.write(4, 1);
           }
           else {
-            sound_on  = false;
+            //sound_on  = false;
+            EEPROM.write(4, 0);
           }
           menue_on = false;
         }
       }
+      load_values();//load value from eeprom
     }
+  }
+}
+//----------------------------------------------
+void load_values () {
+
+  int value;
+  value = EEPROM.read(0);//indoor/outdoor
+  if (value == 0) {
+    profile_indoor = false;
+  }
+  if (value == 1) {
+    profile_indoor = true;
+  }
+  value = EEPROM.read(1);//simulate
+  if (value == 0) {
+    //simulate_on = false;
+  }
+  if (value == 1) {
+    //simulate_on = true;
+  }
+
+  time_factor = EEPROM.read(2);//time factor
+
+  value = EEPROM.read(3);//stats
+  if (value == 0) {
+    stats = false;
+  }
+  if (value == 1) {
+    stats = true;
+  }
+
+  value = EEPROM.read(4);//sound
+  if (value == 0) {
+    sound_on = false;
+  }
+  if (value == 1) {
+    sound_on = true;
   }
 }
 //----------------------------------------------
