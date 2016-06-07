@@ -348,7 +348,15 @@ void loop() {
   // This program only handles an AS3935 lightning sensor. It does nothing until
   // an interrupt is detected on the IRQ pin.
   while (0 == AS3935_ISR_Trig) {}
+  //if (AS3935_ISR_Trig == 1) {
   delay(5);
+
+  //indication of irq
+  if (AS3935_ISR_Trig == 1) {
+    SetCircle(MAGENTA , 5,  230, 2);
+  } else {
+    SetCircle(BLACK , 5,  230, 2);
+  }
 
   // reset interrupt flag
   AS3935_ISR_Trig = 0;
@@ -365,9 +373,9 @@ void loop() {
   {
     uint32_t lightning_energy = lightning0.AS3935_GetStrikeEnergyRaw();
     uint8_t lightning_dist_km = lightning0.AS3935_GetLightningDistKm();
-    //Serial.print("Lightning detected! Distance to strike: ");
-    //Serial.print(lightning_dist_km);
-    //Serial.println(" kilometers");
+    Serial.print("Lightning detected! Distance to strike: ");
+    Serial.print(lightning_dist_km);
+    Serial.println(" kilometers");
     if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
       total_strikes++;
       //activ:0/1
@@ -403,16 +411,16 @@ void loop() {
   }
   else if (2 == int_src)
   {
-    //Serial.println("Disturber detected");
+    Serial.println("Disturber detected");
     disturb = true;
   }
   else if (3 == int_src)
   {
-    //Serial.println("Noise level too high");
+    Serial.println("Noise level too high");
     noise = true;
   }
-  //lightning0.AS3935_PrintAllRegs(); // for debug...
-
+  lightning0.AS3935_PrintAllRegs(); // for debug...
+  //}
   //------------------------------------------------
   //addButton
   //drawButtons
