@@ -303,16 +303,22 @@ void setup()
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
   attachInterrupt(4, AS3935_ISR, RISING);
-  lightning0.AS3935_PrintAllRegs();
+
   AS3935_ISR_Trig = 0;           // clear trigger
+
+  ScreenText(WHITE, 0, 130 , 1, "Init AS3935", 0);
+  ScreenText(WHITE, 0, 130 , 1, "Debug on Serial Interface", 0);
 
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  ScreenText(WHITE, 0, 130 , 1, "Init AS3935", 0);
-  //  ScreenText(WHITE, 0, 150 , 1, "Noise floor is: " + noiseFloor, 0);
-  //  ScreenText(WHITE, 0, 170 , 1, "Spike rejection is: " + spikeRejection, 0);
-  //  ScreenText(WHITE, 0, 190 , 1, "Watchdog threshold is: " + watchdogThreshold, 0);
+  Serial.print("Noise floor is: ");
+  Serial.println(noiseFloor);
+  Serial.print("Spike rejection is: ");
+  Serial.println(spikeRejection);
+  Serial.print("Watchdog threshold is: ");
+  Serial.println(watchdogThreshold);
+  lightning0.AS3935_PrintAllRegs();
   //-------------------------------------------------------------------------------------------
   delay(5000);
   tft.clrScr();
@@ -591,7 +597,7 @@ void loop() {
         menue_on = false;
       }
     }
-      }
+  }
 }
 //----------------------------------------------
 void load_values () {
