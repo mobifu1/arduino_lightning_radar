@@ -243,6 +243,7 @@ volatile int8_t AS3935_ISR_Trig = 0;
 #define AS3935_CAPACITANCE   88       // <-- SET THIS VALUE TO THE NUMBER LISTED ON YOUR BOARD 
 //Mega Board: sda:20, scl:21, irq:19, si:18
 
+
 // defines for general chip settings
 #define AS3935_INDOORS       1
 #define AS3935_OUTDOORS      1
@@ -268,9 +269,10 @@ void setup()
   myTouch.setPrecision(PREC_MEDIUM);
   delay(100);
 
+  //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.5-Beta", 0);
+  ScreenText(WHITE, 0, 10 , 2, "V0.6-Beta", 0);
   ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -347,80 +349,77 @@ void loop() {
 
   // This program only handles an AS3935 lightning sensor. It does nothing until
   // an interrupt is detected on the IRQ pin.
-  while (0 == AS3935_ISR_Trig) {}
-  //if (AS3935_ISR_Trig == 1) {
-  delay(5);
+  //while (0 == AS3935_ISR_Trig) {}
+  //delay(5);
 
   //indication of irq
+
   if (AS3935_ISR_Trig == 1) {
-    SetCircle(MAGENTA , 5,  230, 2);
-  } else {
-    SetCircle(BLACK , 5,  230, 2);
-  }
+    delay(5);
 
-  // reset interrupt flag
-  AS3935_ISR_Trig = 0;
+    // reset interrupt flag
+    AS3935_ISR_Trig = 0;
 
-  // now get interrupt source
-  uint8_t int_src = lightning0.AS3935_GetInterruptSrc();
-  if (0 == int_src)
-  {
-    //Serial.println("interrupt source result not expected");
-    noise = false;
-    disturb = false;
-  }
-  else if (1 == int_src)
-  {
-    uint32_t lightning_energy = lightning0.AS3935_GetStrikeEnergyRaw();
-    uint8_t lightning_dist_km = lightning0.AS3935_GetLightningDistKm();
-    Serial.print("Lightning detected! Distance to strike: ");
-    Serial.print(lightning_dist_km);
-    Serial.println(" kilometers");
-    if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
-      total_strikes++;
-      //activ:0/1
-      //strenght:1-100
-      //distance=0-63km
-      //age=0-15min
-      //x:0-139 //position onn screen
-      //y:0-239 //position onn screen
-      for (int i = 0; i < 50 ; i++) {
-        if ( lightning_strike[i][0] == 0) {
-          last_stroke_index = i;
-          lightning_strike[i][0] = 1;
-          lightning_strike[i][1] = uint16_t(lightning_energy / 6000); //600000eV/6000=100%
-          lightning_strike[i][2] = lightning_dist_km;
-          lightning_strike[i][3] = lightning_timer;
-          long randNumber;
-          randNumber = random(160 - lightning_dist_km, 160 + lightning_dist_km);
-          lightning_strike[i][4] = int(randNumber);
-          lightning_strike[i][5] = int(230 - (lightning_dist_km * 4.0));
-          SetCircle(BLACK , last_xpos,  last_ypos, 8);
-          last_xpos = lightning_strike[i][4];
-          last_ypos = lightning_strike[i][5];
-          SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
-          if (sound_on == true) {
-            //do something with piezo
-            tone(Beep, 1000, 50);
+    // now get interrupt source
+    uint8_t int_src = lightning0.AS3935_GetInterruptSrc();
+    if (0 == int_src)
+    {
+      //Serial.println("interrupt source result not expected");
+      noise = false;
+      disturb = false;
+    }
+    else if (1 == int_src)
+    {
+      uint32_t lightning_energy = lightning0.AS3935_GetStrikeEnergyRaw();
+      uint8_t lightning_dist_km = lightning0.AS3935_GetLightningDistKm();
+      //Serial.print("Lightning detected! Distance to strike: ");
+      //Serial.print(lightning_dist_km);
+      //Serial.println(" kilometers");
+      if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
+        total_strikes++;
+        //activ:0/1
+        //strenght:1-100
+        //distance=0-63km
+        //age=0-15min
+        //x:0-139 //position onn screen
+        //y:0-239 //position onn screen
+        for (int i = 0; i < 50 ; i++) {
+          if ( lightning_strike[i][0] == 0) {
+            last_stroke_index = i;
+            lightning_strike[i][0] = 1;
+            lightning_strike[i][1] = uint16_t(lightning_energy / 6000); //600000eV/6000=100%
+            lightning_strike[i][2] = lightning_dist_km;
+            lightning_strike[i][3] = lightning_timer;
+            long randNumber;
+            randNumber = random(160 - lightning_dist_km, 160 + lightning_dist_km);
+            lightning_strike[i][4] = int(randNumber);
+            lightning_strike[i][5] = int(230 - (lightning_dist_km * 4.0));
+            SetCircle(BLACK , last_xpos,  last_ypos, 8);
+            last_xpos = lightning_strike[i][4];
+            last_ypos = lightning_strike[i][5];
+            SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
+            if (sound_on == true) {
+              //do something with piezo
+              tone(Beep, 1000, 50);
+            }
+            break;
           }
-          break;
         }
       }
-    }
 
+    }
+    else if (2 == int_src)
+    {
+      //Serial.println("Disturber detected");
+      disturb = true;
+    }
+    else if (3 == int_src)
+    {
+      //Serial.println("Noise level too high");
+      noise = true;
+    }
+    //lightning0.AS3935_PrintAllRegs(); // for debug...
   }
-  else if (2 == int_src)
-  {
-    Serial.println("Disturber detected");
-    disturb = true;
-  }
-  else if (3 == int_src)
-  {
-    Serial.println("Noise level too high");
-    noise = true;
-  }
-  lightning0.AS3935_PrintAllRegs(); // for debug...
-  //}
   //------------------------------------------------
   //addButton
   //drawButtons
@@ -436,161 +435,163 @@ void loop() {
   //setSymbolFont
   //setButtonColors
 
-  while (1)
+  if (myTouch.dataAvailable() == true)
   {
-    if (myTouch.dataAvailable() == true)
-    {
-      pressed_button = myButtons.checkButtons();
+    pressed_button = myButtons.checkButtons();
 
-      if (pressed_button == but1) {//Menue
-        if (myButtons.buttonEnabled(but1)) {
-          menue_on = true;
-          myButtons.disableButton(but1, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but2);
-          myButtons.drawButton(but3);
-          myButtons.drawButton(but4);
-          myButtons.drawButton(but5);
-          myButtons.drawButton(but6);
-          myButtons.drawButton(but7);
-          myButtons.enableButton(but2, true);
-          myButtons.enableButton(but3, true);
-          myButtons.enableButton(but4, true);
-          myButtons.enableButton(but5, true);
-          myButtons.enableButton(but6, true);
-          myButtons.enableButton(but7, true);
-        }
+    if (pressed_button == but1) {//Menue
+      if (myButtons.buttonEnabled(but1)) {
+        menue_on = true;
+        myButtons.disableButton(but1, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but2);
+        myButtons.drawButton(but3);
+        myButtons.drawButton(but4);
+        myButtons.drawButton(but5);
+        myButtons.drawButton(but6);
+        myButtons.drawButton(but7);
+        myButtons.enableButton(but2, true);
+        myButtons.enableButton(but3, true);
+        myButtons.enableButton(but4, true);
+        myButtons.enableButton(but5, true);
+        myButtons.enableButton(but6, true);
+        myButtons.enableButton(but7, true);
       }
-      if (pressed_button == but2) {//Indoor
-        if (myButtons.buttonEnabled(but2)) {
-          myButtons.disableButton(but2, true);
-          myButtons.disableButton(but3, true);
-          myButtons.disableButton(but4, true);
-          myButtons.disableButton(but5, true);
-          myButtons.disableButton(but6, true);
-          myButtons.disableButton(but7, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but1);
-          myButtons.enableButton(but1, true);
-          //lightning0.AS3935_SetIndoors();
-          //profile_indoor = true;
-          EEPROM.update(0, 1);
-          menue_on = false;
-        }
-      }
-      if (pressed_button == but3) {//outdoor
-        if (myButtons.buttonEnabled(but3)) {
-          myButtons.disableButton(but2, true);
-          myButtons.disableButton(but3, true);
-          myButtons.disableButton(but4, true);
-          myButtons.disableButton(but5, true);
-          myButtons.disableButton(but6, true);
-          myButtons.disableButton(but7, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but1);
-          myButtons.enableButton(but1, true);
-          //lightning0.AS3935_SetOutdoors();
-          //profile_indoor = false;
-          EEPROM.update(0, 0);
-          menue_on = false;
-        }
-      }
-      if (pressed_button == but4) {//Simulate
-        if (myButtons.buttonEnabled(but4)) {
-          myButtons.disableButton(but2, true);
-          myButtons.disableButton(but3, true);
-          myButtons.disableButton(but4, true);
-          myButtons.disableButton(but5, true);
-          myButtons.disableButton(but6, true);
-          myButtons.disableButton(but7, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but1);
-          myButtons.enableButton(but1, true);
-          if (simulate_on == false) {
-            simulate_on = true;
-            //EEPROM.update(1, 1);
-            lightning_timer = 0;
-          }
-          else {
-            simulate_on = false;
-            //EEPROM.update(1, 0);
-          }
-          menue_on = false;
-        }
-      }
-      if (pressed_button == but5) {//Life Factor
-        if (myButtons.buttonEnabled(but5)) {
-          myButtons.disableButton(but2, true);
-          myButtons.disableButton(but3, true);
-          myButtons.disableButton(but4, true);
-          myButtons.disableButton(but5, true);
-          myButtons.disableButton(but6, true);
-          myButtons.disableButton(but7, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but1);
-          myButtons.enableButton(but1, true);
-          time_factor++;
-          if (time_factor > 4) {
-            time_factor = 1;
-          }
-          EEPROM.update(2, time_factor);
-          menue_on = false;
-        }
-      }
-      if (pressed_button == but6) {//Statistik
-        if (myButtons.buttonEnabled(but6)) {
-          myButtons.disableButton(but2, true);
-          myButtons.disableButton(but3, true);
-          myButtons.disableButton(but4, true);
-          myButtons.disableButton(but5, true);
-          myButtons.disableButton(but6, true);
-          myButtons.disableButton(but7, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but1);
-          myButtons.enableButton(but1, true);
-          if (stats == false) {
-            //stats  = true;
-            EEPROM.update(3, 1);
-          }
-          else {
-            //stats  = false;
-            EEPROM.update(3, 0);
-          }
-          menue_on = false;
-        }
-      }
-      if (pressed_button == but7) {//Sound
-        if (myButtons.buttonEnabled(but6)) {
-          myButtons.disableButton(but2, true);
-          myButtons.disableButton(but3, true);
-          myButtons.disableButton(but4, true);
-          myButtons.disableButton(but5, true);
-          myButtons.disableButton(but6, true);
-          myButtons.disableButton(but7, true);
-          tft.clrScr();
-          tft.setBackColor(BLACK);
-          myButtons.drawButton(but1);
-          myButtons.enableButton(but1, true);
-          if (sound_on == false) {
-            //sound_on  = true;
-            EEPROM.update(4, 1);
-          }
-          else {
-            //sound_on  = false;
-            EEPROM.update(4, 0);
-          }
-          menue_on = false;
-        }
-      }
-      load_values();//load value from eeprom
     }
-  }
+    if (pressed_button == but2) {//Indoor
+      if (myButtons.buttonEnabled(but2)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        //lightning0.AS3935_SetIndoors();
+        //profile_indoor = true;
+        EEPROM.update(0, 1);
+        load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but3) {//outdoor
+      if (myButtons.buttonEnabled(but3)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        //lightning0.AS3935_SetOutdoors();
+        //profile_indoor = false;
+        EEPROM.update(0, 0);
+        load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but4) {//Simulate
+      if (myButtons.buttonEnabled(but4)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        if (simulate_on == false) {
+          simulate_on = true;
+          //EEPROM.update(1, 1);
+          lightning_timer = 0;
+        }
+        else {
+          simulate_on = false;
+          //EEPROM.update(1, 0);
+        }
+        load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but5) {//Life Factor
+      if (myButtons.buttonEnabled(but5)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        time_factor++;
+        if (time_factor > 4) {
+          time_factor = 1;
+        }
+        EEPROM.update(2, time_factor);
+        load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but6) {//Statistik
+      if (myButtons.buttonEnabled(but6)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        if (stats == false) {
+          //stats  = true;
+          EEPROM.update(3, 1);
+        }
+        else {
+          //stats  = false;
+          EEPROM.update(3, 0);
+        }
+        load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but7) {//Sound
+      if (myButtons.buttonEnabled(but6)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        if (sound_on == false) {
+          //sound_on  = true;
+          EEPROM.update(4, 1);
+        }
+        else {
+          //sound_on  = false;
+          EEPROM.update(4, 0);
+        }
+        load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+      }
 }
 //----------------------------------------------
 void load_values () {
