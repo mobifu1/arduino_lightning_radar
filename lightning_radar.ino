@@ -272,7 +272,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.6-Beta", 0);
+  ScreenText(WHITE, 0, 10 , 2, "V0.7-Beta", 0);
   ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -307,16 +307,22 @@ void setup()
   AS3935_ISR_Trig = 0;           // clear trigger
 
   ScreenText(WHITE, 0, 130 , 1, "Init AS3935", 0);
-  ScreenText(WHITE, 0, 130 , 1, "Debug on Serial Interface", 0);
+  ScreenText(WHITE, 0, 150 , 1, "Debug on Serial Interface", 0);
 
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  Serial.print("Noise floor is: ");
+
+  ScreenText(WHITE, 0, 170 , 1, "Noise floor: " + noiseFloor, 0);
+  Serial.print("Noise floor: ");
   Serial.println(noiseFloor);
-  Serial.print("Spike rejection is: ");
+
+  ScreenText(WHITE, 0, 190 , 1, "Spike rejection: " + spikeRejection, 0);
+  Serial.print("Spike rejection: ");
   Serial.println(spikeRejection);
-  Serial.print("Watchdog threshold is: ");
+
+  ScreenText(WHITE, 0, 210 , 1, "Watchdog threshold: " + watchdogThreshold, 0);
+  Serial.print("Watchdog threshold: ");
   Serial.println(watchdogThreshold);
   lightning0.AS3935_PrintAllRegs();
   //-------------------------------------------------------------------------------------------
@@ -541,7 +547,7 @@ void loop() {
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
         time_factor++;
-        if (time_factor > 4) {
+        if (time_factor > 5) {
           time_factor = 1;
         }
         EEPROM.update(2, time_factor);
