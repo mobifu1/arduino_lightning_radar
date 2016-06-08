@@ -117,7 +117,7 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&tft, &myTouch);
-int but1, but2, but3, but4 , but5, but6, but7, pressed_button;
+int but1, but2, but3, but4 , but5, but6, but7, but8, pressed_button;
 boolean menue_on = false;
 
 //Pin
@@ -245,7 +245,7 @@ volatile int8_t AS3935_ISR_Trig = 0;
 
 
 // defines for general chip settings
-#define AS3935_INDOORS       1
+#define AS3935_INDOORS       0
 #define AS3935_OUTDOORS      1
 #define AS3935_DIST_DIS      0
 #define AS3935_DIST_EN       1
@@ -272,7 +272,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.7-Beta", 0);
+  ScreenText(WHITE, 0, 10 , 2, "V0.8-Beta", 0);
   ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -309,19 +309,6 @@ void setup()
   ScreenText(WHITE, 0, 130 , 1, "Init AS3935", 0);
   ScreenText(WHITE, 0, 150 , 1, "Debug on Serial Interface", 0);
 
-  int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
-  int spikeRejection = lightning0.AS3935_GetSpikeRejection();
-  int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-
-  Serial.print("Noise floor: ");
-  Serial.println(noiseFloor);
-
-  Serial.print("Spike rejection: ");
-  Serial.println(spikeRejection);
-
-  Serial.print("Watchdog threshold: ");
-  Serial.println(watchdogThreshold);
-  lightning0.AS3935_PrintAllRegs();
   //-------------------------------------------------------------------------------------------
   delay(5000);
   tft.clrScr();
@@ -342,6 +329,8 @@ void setup()
   myButtons.disableButton(but6, true);
   but7 = myButtons.addButton( 10,  205, 80,  30, "Sound");
   myButtons.disableButton(but7, true);
+  but8 = myButtons.addButton( 100, 5, 80,  30, "Calibrate");
+  myButtons.disableButton(but8, true);
 
   tft.clrScr();
   tft.setBackColor(BLACK);
@@ -460,12 +449,14 @@ void loop() {
         myButtons.drawButton(but5);
         myButtons.drawButton(but6);
         myButtons.drawButton(but7);
+        myButtons.drawButton(but8);
         myButtons.enableButton(but2, true);
         myButtons.enableButton(but3, true);
         myButtons.enableButton(but4, true);
         myButtons.enableButton(but5, true);
         myButtons.enableButton(but6, true);
         myButtons.enableButton(but7, true);
+        myButtons.enableButton(but8, true);
       }
     }
     if (pressed_button == but2) {//Indoor
@@ -476,12 +467,11 @@ void loop() {
         myButtons.disableButton(but5, true);
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        //lightning0.AS3935_SetIndoors();
-        //profile_indoor = true;
         EEPROM.update(0, 1);
         load_values();//load value from eeprom
         menue_on = false;
@@ -495,12 +485,11 @@ void loop() {
         myButtons.disableButton(but5, true);
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        //lightning0.AS3935_SetOutdoors();
-        //profile_indoor = false;
         EEPROM.update(0, 0);
         load_values();//load value from eeprom
         menue_on = false;
@@ -514,20 +503,18 @@ void loop() {
         myButtons.disableButton(but5, true);
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
         if (simulate_on == false) {
           simulate_on = true;
-          //EEPROM.update(1, 1);
           lightning_timer = 0;
         }
         else {
           simulate_on = false;
-          //EEPROM.update(1, 0);
         }
-        load_values();//load value from eeprom
         menue_on = false;
       }
     }
@@ -539,6 +526,7 @@ void loop() {
         myButtons.disableButton(but5, true);
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -560,12 +548,12 @@ void loop() {
         myButtons.disableButton(but5, true);
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
         if (stats == false) {
-          //stats  = true;
           EEPROM.update(3, 1);
         }
         else {
@@ -577,26 +565,59 @@ void loop() {
       }
     }
     if (pressed_button == but7) {//Sound
-      if (myButtons.buttonEnabled(but6)) {
+      if (myButtons.buttonEnabled(but7)) {
         myButtons.disableButton(but2, true);
         myButtons.disableButton(but3, true);
         myButtons.disableButton(but4, true);
         myButtons.disableButton(but5, true);
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
         if (sound_on == false) {
-          //sound_on  = true;
           EEPROM.update(4, 1);
         }
         else {
-          //sound_on  = false;
           EEPROM.update(4, 0);
         }
         load_values();//load value from eeprom
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but8) {//Calibrate
+      if (myButtons.buttonEnabled(but8)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        if (profile_indoor == true) {
+          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_INDOORS, AS3935_DIST_EN);
+        }
+        else {
+          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
+        }
+        delay(200);
+        int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
+        int spikeRejection = lightning0.AS3935_GetSpikeRejection();
+        int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
+        Serial.print("Noise floor: ");
+        Serial.println(noiseFloor);
+        Serial.print("Spike rejection: ");
+        Serial.println(spikeRejection);
+        Serial.print("Watchdog threshold: ");
+        Serial.println(watchdogThreshold);
+        lightning0.AS3935_PrintAllRegs();
+
         menue_on = false;
       }
     }
@@ -752,7 +773,6 @@ void refresh_display() {
     lightning_timer = 0;
   }
   //----------------------------------------------------------
-
   if (menue_on == false) {
 
     if (tick == true) {
