@@ -313,15 +313,12 @@ void setup()
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
 
-  ScreenText(WHITE, 0, 170 , 1, "Noise floor: " + noiseFloor, 0);
   Serial.print("Noise floor: ");
   Serial.println(noiseFloor);
 
-  ScreenText(WHITE, 0, 190 , 1, "Spike rejection: " + spikeRejection, 0);
   Serial.print("Spike rejection: ");
   Serial.println(spikeRejection);
 
-  ScreenText(WHITE, 0, 210 , 1, "Watchdog threshold: " + watchdogThreshold, 0);
   Serial.print("Watchdog threshold: ");
   Serial.println(watchdogThreshold);
   lightning0.AS3935_PrintAllRegs();
