@@ -538,11 +538,11 @@ void loop() {
       if (myButtons.buttonEnabled(but5)) {
         SetFilledRect(BLACK , 11, 126, 308, 233);
         time_factor++;
-        if (time_factor > 7) {
+        if (time_factor > 16) {
           time_factor = 1;
         }
         EEPROM.update(2, time_factor);
-        ScreenText(WHITE, 30, 140 , 1, "Strike Life factor: " + String(time_factor), 0);
+        ScreenText(WHITE, 30, 140 , 1, "Strike life factor: " + String(time_factor), 0);
         ScreenText(WHITE, 30, 170 , 1, "Lifetime: " + String(time_factor * 240 / 60) + " min", 0);
 
         load_values();//load value from eeprom
