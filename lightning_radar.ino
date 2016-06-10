@@ -272,8 +272,8 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.9-Beta", 0);
-  ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
+  ScreenText(WHITE, 10, 10 , 2, "V0.9-Beta", 0);
+  ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
   //Serial.println("Playing With Fusion: AS3935 Lightning Sensor, SEN-39001-R01");
@@ -285,7 +285,7 @@ void setup()
   I2c.setSpeed(1);
   delay(2);
 
-  ScreenText(WHITE, 0, 70 , 1, "Init Serial & I2C", 0);
+  ScreenText(WHITE, 10, 70 , 1, "Init Serial & I2C", 0);
 
   lightning0.AS3935_DefInit();   // set registers to default
   // now update sensor cal for your application and power up chip
@@ -297,15 +297,15 @@ void setup()
   //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
   // function also powers up the chip
   load_values();//load value from eeprom
-  ScreenText(WHITE, 0, 90 , 1, "Load Data from EEPROM", 0);
+  ScreenText(WHITE, 10, 90 , 1, "Load Data from EEPROM", 0);
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
   attachInterrupt(4, AS3935_ISR, RISING);
 
   AS3935_ISR_Trig = 0;           // clear trigger
 
-  ScreenText(WHITE, 0, 110 , 1, "Init AS3935", 0);
-  ScreenText(WHITE, 0, 130 , 1, "Debuging on Serial Interface", 0);
+  ScreenText(WHITE, 10, 110 , 1, "Init AS3935", 0);
+  ScreenText(WHITE, 10, 130 , 1, "Debuging on Serial Interface", 0);
 
   //-------------------------------------------------------------------------------------------
   delay(5000);
@@ -316,25 +316,25 @@ void setup()
   myButtons.setButtonColors(VGA_WHITE, VGA_WHITE, VGA_WHITE, VGA_BLACK, VGA_BLACK);
   but1 = myButtons.addButton( 280,  200, 30,  30, "");
   //----------------------------------------------------------
-  but4 = myButtons.addButton( 10,  5, 80,  30, "Simulate");
+  but4 = myButtons.addButton( 10,  5, 90,  30, "Simulate");
   myButtons.disableButton(but4, true);
-  but2 = myButtons.addButton( 10,  45, 80,  30, "Indoor");
+  but2 = myButtons.addButton( 10,  45, 90,  30, "Indoor");
   myButtons.disableButton(but2, true);
-  but3 = myButtons.addButton( 10,  85, 80,  30, "Outdoor");
+  but3 = myButtons.addButton( 10,  85, 90,  30, "Outdoor");
   myButtons.disableButton(but3, true);
   //----------------------------------------------------------
-  but5 = myButtons.addButton( 100,  5, 80,  30, "Life x");
+  but5 = myButtons.addButton( 115,  5, 90,  30, "Life x");
   myButtons.disableButton(but5, true);
-  but6 = myButtons.addButton( 100,  45, 80,  30, "Stats");
+  but6 = myButtons.addButton( 115,  45, 90,  30, "Stats");
   myButtons.disableButton(but6, true);
-  but7 = myButtons.addButton( 100,  85, 80,  30, "Sound");
+  but7 = myButtons.addButton( 115,  85, 90,  30, "Sound");
   myButtons.disableButton(but7, true);
   //----------------------------------------------------------
-  but8 = myButtons.addButton( 190, 5, 80,  30, "Calibrate");
+  but8 = myButtons.addButton( 220, 5, 90,  30, "Calibrate");
   myButtons.disableButton(but8, true);
-  but9 = myButtons.addButton( 190, 45, 80,  30, "Chip Data");
+  but9 = myButtons.addButton( 220, 45, 90,  30, "Chip Data");
   myButtons.disableButton(but9, true);
-  but10 = myButtons.addButton( 190, 85, 80,  30, "Scan I2C");
+  but10 = myButtons.addButton( 220, 85, 90,  30, "Scan I2C");
   myButtons.disableButton(but10, true);
   //----------------------------------------------------------
   tft.clrScr();
@@ -466,6 +466,7 @@ void loop() {
         myButtons.enableButton(but8, true);
         myButtons.enableButton(but9, true);
         myButtons.enableButton(but10, true);
+        SetRect(WHITE , 10, 125, 309, 234);//Frame
       }
     }
     if (pressed_button == but2) {//Indoor
@@ -535,26 +536,17 @@ void loop() {
     }
     if (pressed_button == but5) {//Life Factor
       if (myButtons.buttonEnabled(but5)) {
-        myButtons.disableButton(but2, true);
-        myButtons.disableButton(but3, true);
-        myButtons.disableButton(but4, true);
-        myButtons.disableButton(but5, true);
-        myButtons.disableButton(but6, true);
-        myButtons.disableButton(but7, true);
-        myButtons.disableButton(but8, true);
-        myButtons.disableButton(but9, true);
-        myButtons.disableButton(but10, true);
-        tft.clrScr();
-        tft.setBackColor(BLACK);
-        myButtons.drawButton(but1);
-        myButtons.enableButton(but1, true);
+        SetFilledRect(BLACK , 11, 126, 308, 233);
         time_factor++;
-        if (time_factor > 5) {
+        if (time_factor > 7) {
           time_factor = 1;
         }
         EEPROM.update(2, time_factor);
+        ScreenText(WHITE, 30, 140 , 1, "Strike Life factor: " + String(time_factor), 0);
+        ScreenText(WHITE, 30, 170 , 1, "Lifetime: " + String(time_factor * 240 / 60) + " min", 0);
+
         load_values();//load value from eeprom
-        menue_on = false;
+        //menue_on = false;
       }
     }
     if (pressed_button == but6) {//Statistik
@@ -636,42 +628,19 @@ void loop() {
     }
     if (pressed_button == but9) {//Chip Data
       if (myButtons.buttonEnabled(but9)) {
-        myButtons.disableButton(but2, true);
-        myButtons.disableButton(but3, true);
-        myButtons.disableButton(but4, true);
-        myButtons.disableButton(but5, true);
-        myButtons.disableButton(but6, true);
-        myButtons.disableButton(but7, true);
-        myButtons.disableButton(but8, true);
-        myButtons.disableButton(but9, true);
-        myButtons.disableButton(but10, true);
-        tft.clrScr();
-        tft.setBackColor(BLACK);
-        myButtons.drawButton(but1);
-        myButtons.enableButton(but1, true);
+        SetFilledRect(BLACK , 11, 126, 308, 233);
         chip_data();
-
-        menue_on = false;
+        //menue_on = false;
       }
     }
     if (pressed_button == but10) {//Scan I2C
       if (myButtons.buttonEnabled(but10)) {
-        myButtons.disableButton(but2, true);
-        myButtons.disableButton(but3, true);
-        myButtons.disableButton(but4, true);
-        myButtons.disableButton(but5, true);
-        myButtons.disableButton(but6, true);
-        myButtons.disableButton(but7, true);
-        myButtons.disableButton(but8, true);
-        myButtons.disableButton(but9, true);
-        myButtons.disableButton(but10, true);
-        tft.clrScr();
-        tft.setBackColor(BLACK);
-        myButtons.drawButton(but1);
-        myButtons.enableButton(but1, true);
+        SetFilledRect(BLACK , 11, 126, 308, 233);
+        ScreenText(WHITE, 30, 140 , 1, "I2C result only at Serial Port" , 0);
+        ScreenText(WHITE, 30, 170 , 1, "Wait 20 sec !" , 0);
         I2c.scan();
 
-        menue_on = false;
+        //menue_on = false;
       }
     }
   }
@@ -838,10 +807,8 @@ void refresh_display() {
     }
 
     if (sound_on == true) {
-      ScreenText(WHITE, 230, 120 , 1, "Sound On", 0);
+      ScreenText(WHITE, 230, 160 , 1, "Sound On", 0);
     }
-
-    ScreenText(WHITE, 230, 160 , 1, "Life x " + String(time_factor), 0);
 
     if (profile_indoor == true) {
       ScreenText(WHITE, 230, 140 , 1, "Indoor", 0);
@@ -1040,18 +1007,20 @@ void lightning_direction() {
 }
 void chip_data() {
 
+  ScreenText(WHITE, 30, 140 , 1, "Chip Data: " , 0);
+
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
-  ScreenText(WHITE, 10, 130 , 1, "Noise floor: " + noiseFloor, 0);
+  ScreenText(WHITE, 30, 170 , 1, "Noise floor: " + String(noiseFloor), 0);
   Serial.print("Noise floor: ");
   Serial.println(noiseFloor);
 
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
-  ScreenText(WHITE, 10, 150 , 1, "Spike rejection: " + spikeRejection, 0);
+  ScreenText(WHITE, 30, 190 , 1, "Spike rejection: " + String(spikeRejection), 0);
   Serial.print("Spike rejection: ");
   Serial.println(spikeRejection);
 
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  ScreenText(WHITE, 10, 170 , 1, "Watchdog threshold: " + watchdogThreshold, 0);
+  ScreenText(WHITE, 30, 210 , 1, "Watchdog threshold: " + String(watchdogThreshold), 0);
   Serial.print("Watchdog threshold: ");
   Serial.println(watchdogThreshold);
 
