@@ -200,6 +200,73 @@ boolean sound_on = false;
 boolean stats = false;
 boolean tick = false;
 int total_strikes = 0;
+
+//--record data-----
+uint16_t time_slot_strike[80][1] = {
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+  {0},
+};
+int record_strikes = 0;
+int time_index = 0;
+
 #include <EEPROM.h>
 //----------------------------------------------------------------
 // The AS3935 communicates via SPI or I2C.
@@ -272,7 +339,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V0.9-Beta", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V0.9.5-Beta", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -380,6 +447,7 @@ void loop() {
       //Serial.println(" kilometers");
       if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
         total_strikes++;
+        record_strikes++;
         //activ:0/1
         //strenght:1-100
         //distance=0-63km
@@ -755,6 +823,7 @@ void simulate_strikes() {
     long randNumber2 = random(0, 45);
     long randNumber3 = random(20, 100);
     total_strikes++;
+    record_strikes++;
     for (int i = 0; i < 50 ; i++) {
       if ( lightning_strike[i][0] == 0) {
         last_stroke_index = i;
@@ -807,14 +876,14 @@ void refresh_display() {
     }
 
     if (sound_on == true) {
-      ScreenText(WHITE, 230, 160 , 1, "Sound On", 0);
+      ScreenText(WHITE, 233, 165 , 1, "Sound On", 0);
     }
 
     if (profile_indoor == true) {
-      ScreenText(WHITE, 230, 140 , 1, "Indoor", 0);
+      ScreenText(WHITE, 233, 145 , 1, "Indoor", 0);
     }
     else {
-      ScreenText(WHITE, 230, 140 , 1, "Outdoor", 0);
+      ScreenText(WHITE, 233, 145 , 1, "Outdoor", 0);
     }
 
     ScreenText(WHITE, 40, 50 , 1, "45km", 0);
@@ -935,6 +1004,7 @@ void refresh_display() {
     }
     lightning_energy();
     lightning_direction();
+    time_record_strikes();
   }
 }
 //--------------------------------------------------------------
@@ -1025,6 +1095,32 @@ void chip_data() {
   Serial.println(watchdogThreshold);
 
   lightning0.AS3935_PrintAllRegs();
+}
+//--------------------------------------------------------------
+void time_record_strikes() {
+
+  int slot_age = lightning_timer - time_index ; //time_stamp
+  if (slot_age < 0) {
+    slot_age = slot_age + 32768;
+  }
+  if (record_strikes > 50) {
+    record_strikes = 50;
+  }
+  time_slot_strike[0][0] = record_strikes;
+  SetLines(GRAY , 313 - 40, 130 - 51, 313 , 130 - 51); //Top Line
+  SetLines(RED , 313 , 130, 313 , 130 - time_slot_strike[0][0]);
+  SetLines(RED , 313 - 78, 131, 313 , 131);//Base Line
+
+  if (slot_age > 540) {//9min * 80 = 12h
+    time_index = lightning_timer;
+    for (int s = 78; s >= 0; s--) {
+      int copy_value = time_slot_strike[s][0];
+      time_slot_strike[s + 1][0] = copy_value;
+      SetLines(BLACK , 313 - s, 130, 313 - s , 130 - 50);
+      SetLines(RED , 313 - s, 130, 313 - s , 130 - time_slot_strike[s][0]);
+    }
+    record_strikes = 0;
+  }
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
