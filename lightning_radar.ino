@@ -117,7 +117,7 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&tft, &myTouch);
-int but1, but2, but3, but4 , but5, but6, but7, but8, pressed_button;
+int but1, but2, but3, but4, but5, but6, but7, but8, but9, but10, pressed_button;
 boolean menue_on = false;
 
 //Pin
@@ -272,7 +272,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 0, 10 , 2, "V0.8-Beta", 0);
+  ScreenText(WHITE, 0, 10 , 2, "V0.9-Beta", 0);
   ScreenText(WHITE, 0, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -286,8 +286,6 @@ void setup()
   delay(2);
 
   ScreenText(WHITE, 0, 70 , 1, "Init Serial & I2C", 0);
-  ScreenText(WHITE, 0, 90 , 1, "Scan I2C Addresses", 0);
-  I2c.scan();
 
   lightning0.AS3935_DefInit();   // set registers to default
   // now update sensor cal for your application and power up chip
@@ -299,15 +297,15 @@ void setup()
   //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
   // function also powers up the chip
   load_values();//load value from eeprom
-  ScreenText(WHITE, 0, 110 , 1, "Load Data from EEPROM", 0);
+  ScreenText(WHITE, 0, 90 , 1, "Load Data from EEPROM", 0);
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
   attachInterrupt(4, AS3935_ISR, RISING);
 
   AS3935_ISR_Trig = 0;           // clear trigger
 
-  ScreenText(WHITE, 0, 130 , 1, "Init AS3935", 0);
-  ScreenText(WHITE, 0, 150 , 1, "Debug on Serial Interface", 0);
+  ScreenText(WHITE, 0, 110 , 1, "Init AS3935", 0);
+  ScreenText(WHITE, 0, 130 , 1, "Debuging on Serial Interface", 0);
 
   //-------------------------------------------------------------------------------------------
   delay(5000);
@@ -317,21 +315,28 @@ void setup()
   myButtons.setTextFont(SmallFont);
   myButtons.setButtonColors(VGA_WHITE, VGA_WHITE, VGA_WHITE, VGA_BLACK, VGA_BLACK);
   but1 = myButtons.addButton( 280,  200, 30,  30, "");
+  //----------------------------------------------------------
+  but4 = myButtons.addButton( 10,  5, 80,  30, "Simulate");
+  myButtons.disableButton(but4, true);
   but2 = myButtons.addButton( 10,  45, 80,  30, "Indoor");
   myButtons.disableButton(but2, true);
   but3 = myButtons.addButton( 10,  85, 80,  30, "Outdoor");
   myButtons.disableButton(but3, true);
-  but4 = myButtons.addButton( 10,  5, 80,  30, "Simulate");
-  myButtons.disableButton(but4, true);
-  but5 = myButtons.addButton( 10,  125, 80,  30, "Life x");
+  //----------------------------------------------------------
+  but5 = myButtons.addButton( 100,  5, 80,  30, "Life x");
   myButtons.disableButton(but5, true);
-  but6 = myButtons.addButton( 10,  165, 80,  30, "Stats");
+  but6 = myButtons.addButton( 100,  45, 80,  30, "Stats");
   myButtons.disableButton(but6, true);
-  but7 = myButtons.addButton( 10,  205, 80,  30, "Sound");
+  but7 = myButtons.addButton( 100,  85, 80,  30, "Sound");
   myButtons.disableButton(but7, true);
-  but8 = myButtons.addButton( 100, 5, 80,  30, "Calibrate");
+  //----------------------------------------------------------
+  but8 = myButtons.addButton( 190, 5, 80,  30, "Calibrate");
   myButtons.disableButton(but8, true);
-
+  but9 = myButtons.addButton( 190, 45, 80,  30, "Chip Data");
+  myButtons.disableButton(but9, true);
+  but10 = myButtons.addButton( 190, 85, 80,  30, "Scan I2C");
+  myButtons.disableButton(but10, true);
+  //----------------------------------------------------------
   tft.clrScr();
   tft.setBackColor(BLACK);
   myButtons.drawButton(but1);
@@ -450,6 +455,8 @@ void loop() {
         myButtons.drawButton(but6);
         myButtons.drawButton(but7);
         myButtons.drawButton(but8);
+        myButtons.drawButton(but9);
+        myButtons.drawButton(but10);
         myButtons.enableButton(but2, true);
         myButtons.enableButton(but3, true);
         myButtons.enableButton(but4, true);
@@ -457,6 +464,8 @@ void loop() {
         myButtons.enableButton(but6, true);
         myButtons.enableButton(but7, true);
         myButtons.enableButton(but8, true);
+        myButtons.enableButton(but9, true);
+        myButtons.enableButton(but10, true);
       }
     }
     if (pressed_button == but2) {//Indoor
@@ -468,6 +477,8 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -486,6 +497,8 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -504,6 +517,8 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -527,6 +542,8 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -549,6 +566,8 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -573,6 +592,8 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -596,6 +617,9 @@ void loop() {
         myButtons.disableButton(but6, true);
         myButtons.disableButton(but7, true);
         myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
+
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -606,17 +630,46 @@ void loop() {
         else {
           lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
         }
-        delay(200);
-        int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
-        int spikeRejection = lightning0.AS3935_GetSpikeRejection();
-        int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-        Serial.print("Noise floor: ");
-        Serial.println(noiseFloor);
-        Serial.print("Spike rejection: ");
-        Serial.println(spikeRejection);
-        Serial.print("Watchdog threshold: ");
-        Serial.println(watchdogThreshold);
-        lightning0.AS3935_PrintAllRegs();
+
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but9) {//Chip Data
+      if (myButtons.buttonEnabled(but9)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        chip_data();
+
+        menue_on = false;
+      }
+    }
+    if (pressed_button == but10) {//Scan I2C
+      if (myButtons.buttonEnabled(but10)) {
+        myButtons.disableButton(but2, true);
+        myButtons.disableButton(but3, true);
+        myButtons.disableButton(but4, true);
+        myButtons.disableButton(but5, true);
+        myButtons.disableButton(but6, true);
+        myButtons.disableButton(but7, true);
+        myButtons.disableButton(but8, true);
+        myButtons.disableButton(but9, true);
+        myButtons.disableButton(but10, true);
+        tft.clrScr();
+        tft.setBackColor(BLACK);
+        myButtons.drawButton(but1);
+        myButtons.enableButton(but1, true);
+        I2c.scan();
 
         menue_on = false;
       }
@@ -984,6 +1037,25 @@ void lightning_direction() {
       ScreenText(WHITE, 250, 10 , 1, "/" + String(value) + "min ", 0);
     }
   }
+}
+void chip_data() {
+
+  int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
+  ScreenText(WHITE, 10, 130 , 1, "Noise floor: " + noiseFloor, 0);
+  Serial.print("Noise floor: ");
+  Serial.println(noiseFloor);
+
+  int spikeRejection = lightning0.AS3935_GetSpikeRejection();
+  ScreenText(WHITE, 10, 150 , 1, "Spike rejection: " + spikeRejection, 0);
+  Serial.print("Spike rejection: ");
+  Serial.println(spikeRejection);
+
+  int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
+  ScreenText(WHITE, 10, 170 , 1, "Watchdog threshold: " + watchdogThreshold, 0);
+  Serial.print("Watchdog threshold: ");
+  Serial.println(watchdogThreshold);
+
+  lightning0.AS3935_PrintAllRegs();
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
