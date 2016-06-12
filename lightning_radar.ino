@@ -339,7 +339,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V0.9.5-Beta", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V1.0-RC", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -1109,7 +1109,9 @@ void time_record_strikes() {
   time_slot_strike[0][0] = record_strikes;
   SetLines(GRAY , 313 - 40, 130 - 51, 313 , 130 - 51); //Top Line
   SetLines(RED , 313 , 130, 313 , 130 - time_slot_strike[0][0]);
+  ScreenText(RED, 313 - 100, 125 , 1, "12h", 0);//Scale
   SetLines(RED , 313 - 78, 131, 313 , 131);//Base Line
+
 
   if (slot_age > 540) {//9min * 80 = 12h
     time_index = lightning_timer;
