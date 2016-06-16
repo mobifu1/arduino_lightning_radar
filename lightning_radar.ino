@@ -200,6 +200,9 @@ boolean sound_on = false;
 boolean stats = false;
 boolean tick = false;
 int total_strikes = 0;
+int culmulation_strikes = 0;
+byte culmulation_strikes_low = 0;
+byte culmulation_strikes_high = 0;
 
 //--record data-----
 uint16_t time_slot_strike[80][1] = {
@@ -339,7 +342,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V1.0-RC", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V1.1-RC", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -448,6 +451,7 @@ void loop() {
       if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
         total_strikes++;
         record_strikes++;
+        increment_culmulation_strikes();
         //activ:0/1
         //strenght:1-100
         //distance=0-63km
@@ -614,7 +618,6 @@ void loop() {
         ScreenText(WHITE, 30, 170 , 1, "Lifetime: " + String(time_factor * 240 / 60) + " min", 0);
 
         load_values();//load value from eeprom
-        //menue_on = false;
       }
     }
     if (pressed_button == but6) {//Statistik
@@ -698,7 +701,6 @@ void loop() {
       if (myButtons.buttonEnabled(but9)) {
         SetFilledRect(BLACK , 11, 126, 308, 233);
         chip_data();
-        //menue_on = false;
       }
     }
     if (pressed_button == but10) {//Scan I2C
@@ -707,8 +709,6 @@ void loop() {
         ScreenText(WHITE, 30, 140 , 1, "I2C result only at Serial Port" , 0);
         ScreenText(WHITE, 30, 170 , 1, "Wait 20 sec !" , 0);
         I2c.scan();
-
-        //menue_on = false;
       }
     }
   }
@@ -750,6 +750,17 @@ void load_values () {
   }
   if (value == 1) {
     sound_on = true;
+  }
+
+  culmulation_strikes_low = EEPROM.read(5);//count all strikes
+  culmulation_strikes_high = EEPROM.read(6);//count all strikes
+  culmulation_strikes = ((culmulation_strikes_low << 0) & 0xFF) + ((culmulation_strikes_high << 8) & 0xFF00);
+  if (culmulation_strikes < 0 || culmulation_strikes == 32767 ) {
+    culmulation_strikes = 0;
+    culmulation_strikes_low = ((culmulation_strikes >> 0) & 0xFF);
+    culmulation_strikes_high = ((culmulation_strikes >> 8) & 0xFF);
+    EEPROM.write(5, culmulation_strikes_low);
+    EEPROM.write(6, culmulation_strikes_high);
   }
 }
 //----------------------------------------------
@@ -824,6 +835,7 @@ void simulate_strikes() {
     long randNumber3 = random(20, 100);
     total_strikes++;
     record_strikes++;
+    //increment_culmulation_strikes();
     for (int i = 0; i < 50 ; i++) {
       if ( lightning_strike[i][0] == 0) {
         last_stroke_index = i;
@@ -876,14 +888,14 @@ void refresh_display() {
     }
 
     if (sound_on == true) {
-      ScreenText(WHITE, 233, 165 , 1, "Sound On", 0);
+      ScreenText(WHITE, 210, 165 , 1, "Sound On", 0);
     }
 
     if (profile_indoor == true) {
-      ScreenText(WHITE, 233, 145 , 1, "Indoor", 0);
+      ScreenText(WHITE, 210, 185 , 1, "Indoor", 0);
     }
     else {
-      ScreenText(WHITE, 233, 145 , 1, "Outdoor", 0);
+      ScreenText(WHITE, 210, 185 , 1, "Outdoor", 0);
     }
 
     ScreenText(WHITE, 40, 50 , 1, "45km", 0);
@@ -1077,22 +1089,26 @@ void lightning_direction() {
 }
 void chip_data() {
 
-  ScreenText(WHITE, 30, 140 , 1, "Chip Data: " , 0);
+  ScreenText(WHITE, 30, 140 , 1, "All Strikes: " + String(culmulation_strikes), 0);
+  Serial.print("Culmulation Strikes: ");
+  Serial.println(culmulation_strikes);
 
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
-  ScreenText(WHITE, 30, 170 , 1, "Noise floor: " + String(noiseFloor), 0);
+  ScreenText(WHITE, 30, 160 , 1, "Noise floor: " + String(noiseFloor), 0);
   Serial.print("Noise floor: ");
   Serial.println(noiseFloor);
 
   int spikeRejection = lightning0.AS3935_GetSpikeRejection();
-  ScreenText(WHITE, 30, 190 , 1, "Spike rejection: " + String(spikeRejection), 0);
+  ScreenText(WHITE, 30, 180 , 1, "Spike rejection: " + String(spikeRejection), 0);
   Serial.print("Spike rejection: ");
   Serial.println(spikeRejection);
 
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  ScreenText(WHITE, 30, 210 , 1, "Watchdog threshold: " + String(watchdogThreshold), 0);
+  ScreenText(WHITE, 30, 200 , 1, "Watchdog threshold: " + String(watchdogThreshold), 0);
   Serial.print("Watchdog threshold: ");
   Serial.println(watchdogThreshold);
+
+
 
   lightning0.AS3935_PrintAllRegs();
 }
@@ -1107,10 +1123,10 @@ void time_record_strikes() {
     record_strikes = 50;
   }
   time_slot_strike[0][0] = record_strikes;
-  SetLines(GRAY , 313 - 40, 130 - 51, 313 , 130 - 51); //Top Line
-  SetLines(RED , 313 , 130, 313 , 130 - time_slot_strike[0][0]);
-  ScreenText(RED, 313 - 100, 125 , 1, "12h", 0);//Scale
-  SetLines(RED , 313 - 78, 131, 313 , 131);//Base Line
+  SetLines(GRAY , 318 - 40, 140 - 51, 318 , 140 - 51); //Top Line
+  SetLines(RED , 318 , 140, 318 , 140 - time_slot_strike[0][0]);
+  ScreenText(RED, 318 - 105, 135 , 1, "12h", 0);//Scale
+  SetLines(RED , 318 - 78, 141, 318 , 141);//Base Line
 
 
   if (slot_age > 540) {//9min * 80 = 12h
@@ -1118,11 +1134,23 @@ void time_record_strikes() {
     for (int s = 78; s >= 0; s--) {
       int copy_value = time_slot_strike[s][0];
       time_slot_strike[s + 1][0] = copy_value;
-      SetLines(BLACK , 313 - s, 130, 313 - s , 130 - 50);
-      SetLines(RED , 313 - s, 130, 313 - s , 130 - time_slot_strike[s][0]);
+      SetLines(BLACK , 318 - s, 140, 318 - s , 140 - 50);
+      SetLines(RED , 318 - s, 140, 318 - s , 140 - time_slot_strike[s][0]);
     }
     record_strikes = 0;
   }
+}
+//--------------------------------------------------------------
+void increment_culmulation_strikes() {
+
+  culmulation_strikes_low = EEPROM.read(5);//count all strikes
+  culmulation_strikes_high = EEPROM.read(6);//count all strikes
+  culmulation_strikes = ((culmulation_strikes_low << 0) & 0xFF) + ((culmulation_strikes_high << 8) & 0xFF00);
+  culmulation_strikes++;
+  culmulation_strikes_low = ((culmulation_strikes >> 0) & 0xFF);
+  culmulation_strikes_high = ((culmulation_strikes >> 8) & 0xFF);
+  EEPROM.write(5, culmulation_strikes_low);
+  EEPROM.write(6, culmulation_strikes_high);
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
