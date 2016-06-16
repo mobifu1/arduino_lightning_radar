@@ -1063,17 +1063,17 @@ void lightning_direction() {
     }
   }
   if (lightning_strike[array_position_oldest][5] < lightning_strike[array_position_newest][5]) {
-    SetTriangle(BLACK , 200, 210, 210, 210, 205, 200);
-    SetTriangle(WHITE , 200, 200, 210, 200, 205, 210);
+    SetTriangle(BLACK , 130, 235, 140, 235, 135, 225);
+    SetTriangle(WHITE , 130, 225, 140, 225, 135, 235);
 
   }
   if (lightning_strike[array_position_oldest][5] > lightning_strike[array_position_newest][5]) {
-    SetTriangle(BLACK , 200, 200, 210, 200, 205, 210);
-    SetTriangle(WHITE , 200, 210, 210, 210, 205, 200);
+    SetTriangle(BLACK , 130, 225, 140, 225, 135, 235);
+    SetTriangle(WHITE , 130, 235, 140, 235, 135, 225);
   }
   if (lightning_strike[array_position_oldest][5] == lightning_strike[array_position_newest][5]) {
-    SetTriangle(BLACK , 200, 200, 210, 200, 205, 210);
-    SetTriangle(BLACK , 200, 210, 210, 210, 205, 200);
+    SetTriangle(BLACK , 130, 235, 140, 235, 135, 225);
+    SetTriangle(BLACK , 130, 225, 140, 225, 135, 235);
   }
 
   if (stats == true) {
