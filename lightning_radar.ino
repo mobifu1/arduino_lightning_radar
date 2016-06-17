@@ -448,6 +448,9 @@ void loop() {
       //Serial.print("Lightning detected! Distance to strike: ");
       //Serial.print(lightning_dist_km);
       //Serial.println(" kilometers");
+      //Serial.print("Lightning detected! Strike energy: ");
+      //Serial.print(lightning_energy);
+      //Serial.println(" eV");
       if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
         total_strikes++;
         record_strikes++;
@@ -462,7 +465,7 @@ void loop() {
           if ( lightning_strike[i][0] == 0) {
             last_stroke_index = i;
             lightning_strike[i][0] = 1;
-            lightning_strike[i][1] = uint16_t(lightning_energy / 6000); //600000eV/6000=100%
+            lightning_strike[i][1] = uint16_t(lightning_energy / 20972); //max:2097151eV = 21Bits,  2097151eV / 20972 = 100%
             lightning_strike[i][2] = lightning_dist_km;
             lightning_strike[i][3] = lightning_timer;
             long randNumber;
@@ -1123,7 +1126,8 @@ void time_record_strikes() {
     record_strikes = 50;
   }
   time_slot_strike[0][0] = record_strikes;
-  SetLines(GRAY , 318 - 40, 140 - 51, 318 , 140 - 51); //Top Line
+  //SetLines(GRAY , 318 - 40, 140 - 51, 318 , 140 - 51); //Top Line
+  SetLines(GRAY , 319, 141, 319 , 141 - 51); //y line max. 50
   SetLines(RED , 318 , 140, 318 , 140 - time_slot_strike[0][0]);
   ScreenText(RED, 318 - 105, 135 , 1, "12h", 0);//Scale
   SetLines(RED , 318 - 78, 141, 318 , 141);//Base Line
