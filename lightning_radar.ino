@@ -342,7 +342,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V1.1-RC", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V1.2-Beta", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -1155,6 +1155,43 @@ void increment_culmulation_strikes() {
   culmulation_strikes_high = ((culmulation_strikes >> 8) & 0xFF);
   EEPROM.write(5, culmulation_strikes_low);
   EEPROM.write(6, culmulation_strikes_high);
+}
+//--------------------------------------------------------------
+void set_chip_value(String function, int value) {
+
+  if (function == "DisturberEn") {
+    lightning0.AS3935_DisturberEn();
+    Serial.println("SetDisturberEn");
+  }
+
+  if (function == "DisturberDis") {
+    lightning0.AS3935_DisturberDis();
+    Serial.println("SetDisturberDis");
+  }
+
+  if (function == "SetMinStrikes") {
+    lightning0.AS3935_SetMinStrikes(value);
+    Serial.print("SetMinStrikes:");
+    Serial.println(value);
+  }
+
+  if (function == "SetNoiseFloorLvl") {
+    lightning0.AS3935_SetNoiseFloorLvl(value);
+    Serial.print("SetNoiseFloorLvl: ");
+    Serial.println(value);
+  }
+
+  if (function == "SetWatchdogThreshold") {
+    lightning0.AS3935_SetWatchdogThreshold(value);
+    Serial.print("SetWatchdogThreshold: ");
+    Serial.println(value);
+  }
+
+  if (function == "SetSpikeRejection") {
+    lightning0.AS3935_SetSpikeRejection(value);
+    Serial.print("SetSpikeRejection: ");
+    Serial.println(value);
+  }
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
