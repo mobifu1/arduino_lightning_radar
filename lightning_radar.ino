@@ -186,10 +186,10 @@ int last_ypos;
 boolean noise = false;//flag
 boolean disturb = false;//flag
 boolean simulate_on = false;
-boolean profile_indoor;
+byte profile_indoor;
 boolean sound_on;
 boolean stats;
-boolean disturber_on;
+byte disturber_on;
 byte SetMinStrikes;
 byte SetNoiseFloorLvl;
 byte SetWatchdogThreshold;
@@ -309,13 +309,6 @@ volatile int8_t AS3935_ISR_Trig = 0;
 #define AS3935_CAPACITANCE   88       // <-- SET THIS VALUE TO THE NUMBER LISTED ON YOUR BOARD 
 //Mega Board: sda:20, scl:21, irq:19, si:18
 
-
-// defines for general chip settings
-//#define AS3935_INDOORS       0
-//#define AS3935_OUTDOORS      1
-//#define AS3935_DIST_DIS      0
-//#define AS3935_DIST_EN       1
-
 // prototypes
 void AS3935_ISR();
 
@@ -384,9 +377,9 @@ void setup()
   //----------------------------------------------------------
   but4 = myButtons.addButton( 10,  5, 90,  30, "Simulate");
   myButtons.disableButton(but4, true);
-  but2 = myButtons.addButton( 10,  45, 90,  30, "Indoor");
+  but2 = myButtons.addButton( 10,  45, 90,  30, "In/Outdoor");
   myButtons.disableButton(but2, true);
-  but3 = myButtons.addButton( 10,  85, 90,  30, "Outdoor");
+  but3 = myButtons.addButton( 10,  85, 90,  30, "Disturber");
   myButtons.disableButton(but3, true);
   //----------------------------------------------------------
   but5 = myButtons.addButton( 115,  5, 90,  30, "Life x");
@@ -398,9 +391,9 @@ void setup()
   //----------------------------------------------------------
   but8 = myButtons.addButton( 220, 5, 90,  30, "Calibrate");
   myButtons.disableButton(but8, true);
-  but9 = myButtons.addButton( 220, 45, 90,  30, "Chip Data");
+  but9 = myButtons.addButton( 220, 45, 90,  30, "Get Data");
   myButtons.disableButton(but9, true);
-  but10 = myButtons.addButton( 220, 85, 90,  30, "Scan I2C");
+  but10 = myButtons.addButton( 220, 85, 90,  30, "Set Data");
   myButtons.disableButton(but10, true);
   //----------------------------------------------------------
   tft.clrScr();
@@ -540,7 +533,7 @@ void loop() {
         SetRect(WHITE , 10, 125, 309, 234);//Frame
       }
     }
-    if (pressed_button == but2) {//Indoor
+    if (pressed_button == but2) {//Indoor/Outdoor
       if (myButtons.buttonEnabled(but2)) {
         myButtons.disableButton(but2, true);
         myButtons.disableButton(but3, true);
@@ -555,11 +548,16 @@ void loop() {
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        set_chip_value("SetIndoors", 0);
+        if (profile_indoor == 1) {
+          set_chip_value("SetOutdoors", 0);
+        }
+        else {
+          set_chip_value("SetIndoors", 0);
+        }
         menue_on = false;
       }
     }
-    if (pressed_button == but3) {//outdoor
+    if (pressed_button == but3) {//Disturber
       if (myButtons.buttonEnabled(but3)) {
         myButtons.disableButton(but2, true);
         myButtons.disableButton(but3, true);
@@ -574,7 +572,12 @@ void loop() {
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        set_chip_value("SetOutdoors", 0);
+        if (disturber_on == 1) {
+          set_chip_value("DisturberDis", 0);
+        }
+        else {
+          set_chip_value("DisturberEn", 0);
+        }
         menue_on = false;
       }
     }
@@ -694,12 +697,13 @@ void loop() {
         chip_data();
       }
     }
-    if (pressed_button == but10) {//Scan I2C
+    if (pressed_button == but10) {//Set chip data
       if (myButtons.buttonEnabled(but10)) {
         SetFilledRect(BLACK , 11, 126, 308, 233);
-        ScreenText(WHITE, 30, 140 , 1, "I2C result only at Serial Port" , 0);
-        ScreenText(WHITE, 30, 170 , 1, "Wait 20 sec !" , 0);
-        I2c.scan();
+        ScreenText(WHITE, 30, 140 , 1, "Function not inuse" , 0);
+        //        ScreenText(WHITE, 30, 140 , 1, "I2C result only at Serial Port" , 0);
+        //        ScreenText(WHITE, 30, 170 , 1, "Wait 20 sec !" , 0);
+        //        I2c.scan();
       }
     }
   }
@@ -710,10 +714,10 @@ void load_values () {
   int value;
   value = EEPROM.read(0);//indoor/outdoor
   if (value == 0) {
-    profile_indoor = false;
+    profile_indoor = 0;
   }
   if (value == 1) {
-    profile_indoor = true;
+    profile_indoor = 1;
   }
   value = EEPROM.read(1);//simulate
   if (value == 0) {
@@ -754,10 +758,10 @@ void load_values () {
 
   value = EEPROM.read(7);//disturber
   if (value == 0) {
-    disturber_on = false;
+    disturber_on = 0;
   }
   if (value == 1) {
-    disturber_on = true;
+    disturber_on = 1;
   }
 
   value = EEPROM.read(8);//SetMinStrikes
@@ -900,7 +904,7 @@ void refresh_display() {
       ScreenText(WHITE, 210, 165 , 1, "Sound On", 0);
     }
 
-    if (profile_indoor == true) {
+    if (profile_indoor == 1) {
       ScreenText(WHITE, 210, 185 , 1, "Indoor", 0);
     }
     else {
@@ -940,6 +944,11 @@ void refresh_display() {
     else {
       ScreenText(BLACK, 20, 200 , 1, "Noise !", 0);
       SetFilledCircle(BLACK , 10,  205, 2);
+    }
+
+    if (disturber_on == 0 ) {
+      SetFilledCircle(GRAY , 10,  175, 2);
+      ScreenText(GRAY, 20, 170 , 1, "Dist of", 0);
     }
 
     if (disturb == true ) {
