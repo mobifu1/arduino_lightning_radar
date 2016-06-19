@@ -3,29 +3,23 @@
   File Name: as3935_lightning_i2c_nocal.ino
   Processor/Platform: Arduino Uno R3 (tested)
   Development Environment: Arduino 1.6.1
-
   Designed for use with with Playing With Fusion AS3935 Lightning Sensor
   Breakout: SEN-39001-R01. Demo shows how this lightning sensor can be brought
   into an Arduino project without a bunch of calibration needed. This is
   because each board is tested calibrated prior to being shipped, and the
   cal value is written on the packaging.
-
     SEN-39001-R01 (universal applications)
     ---> http://www.playingwithfusion.com/productview.php?pdid=22
-
   Copyright © 2015 Playing With Fusion, Inc.
   SOFTWARE LICENSE AGREEMENT: This code is released under the MIT License.
-
   Permission is hereby granted, free of charge, to any person obtaining a
   copy of this software and associated documentation files (the "Software"),
   to deal in the Software without restriction, including without limitation
   the rights to use, copy, modify, merge, publish, distribute, sublicense,
   and/or sell copies of the Software, and to permit persons to whom the
   Software is furnished to do so, subject to the following conditions:
-
   The above copyright notice and this permission notice shall be included in
   all copies or substantial portions of the Software.
-
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -37,11 +31,9 @@
   REVISION HISTORY:
   Author    Date    Comments
   J. Steinlage    2015Jul20       I2C release based on SPI example
-
   Playing With Fusion, Inc. invests time and resources developing open-source
   code. Please support Playing With Fusion and continued open-source
   development by buying products from Playing With Fusion!
-
 * **************************************************************************
   APPLICATION SPECIFIC NOTES (READ THIS!!!):
   - This file configures then runs a program on an Arduino to interface with
@@ -56,7 +48,6 @@
     review the setup() function for other settings (indoor/outdoor, for example)
   - I2C specific note: This example uses the I2C interface via the I2C lib, not
     the 'Wire' lib included with the Arduino IDE.
-
   Circuit:
      Arduino Uno   Arduino Mega  -->  SEN-39001: AS3935 Breakout
      SDA:    SDA        SDA      -->  MOSI/SDA   (SDA is labeled on the bottom of the Arduino)
@@ -192,12 +183,17 @@ int time_factor = 1;
 int last_stroke_index;//position on table
 int last_xpos;
 int last_ypos;
-boolean noise = false;
-boolean disturb = false;
+boolean noise = false;//flag
+boolean disturb = false;//flag
 boolean simulate_on = false;
-boolean profile_indoor = false;
-boolean sound_on = false;
-boolean stats = false;
+boolean profile_indoor;
+boolean sound_on;
+boolean stats;
+boolean disturber_on;
+byte SetMinStrikes;
+byte SetNoiseFloorLvl;
+byte SetWatchdogThreshold;
+byte SetSpikeRejection;
 boolean tick = false;
 int total_strikes = 0;
 int culmulation_strikes = 0;
@@ -315,10 +311,10 @@ volatile int8_t AS3935_ISR_Trig = 0;
 
 
 // defines for general chip settings
-#define AS3935_INDOORS       0
-#define AS3935_OUTDOORS      1
-#define AS3935_DIST_DIS      0
-#define AS3935_DIST_EN       1
+//#define AS3935_INDOORS       0
+//#define AS3935_OUTDOORS      1
+//#define AS3935_DIST_DIS      0
+//#define AS3935_DIST_EN       1
 
 // prototypes
 void AS3935_ISR();
@@ -359,14 +355,14 @@ void setup()
 
   lightning0.AS3935_DefInit();   // set registers to default
   // now update sensor cal for your application and power up chip
-  lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
+  load_values();//load value from eeprom
+  lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_indoor, disturber_on);//outdoor = 1 / disten = 1
   calibrated = true;
   // AS3935_ManualCal Parameters:
   //   --> capacitance, in pF (marked on package)
   //   --> indoors/outdoors (AS3935_INDOORS:1 / AS3935_OUTDOORS:1)
   //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
   // function also powers up the chip
-  load_values();//load value from eeprom
   ScreenText(WHITE, 10, 90 , 1, "Load Data from EEPROM", 0);
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
@@ -559,8 +555,7 @@ void loop() {
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        EEPROM.update(0, 1);
-        load_values();//load value from eeprom
+        set_chip_value("SetIndoors", 0);
         menue_on = false;
       }
     }
@@ -579,8 +574,7 @@ void loop() {
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        EEPROM.update(0, 0);
-        load_values();//load value from eeprom
+        set_chip_value("SetOutdoors", 0);
         menue_on = false;
       }
     }
@@ -690,13 +684,7 @@ void loop() {
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        if (profile_indoor == true) {
-          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_INDOORS, AS3935_DIST_EN);
-        }
-        else {
-          lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, AS3935_OUTDOORS, AS3935_DIST_EN);
-        }
-
+        lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_indoor, disturber_on);//outdoor = 1 / disten = 1
         menue_on = false;
       }
     }
@@ -723,11 +711,9 @@ void load_values () {
   value = EEPROM.read(0);//indoor/outdoor
   if (value == 0) {
     profile_indoor = false;
-    lightning0.AS3935_SetOutdoors();
   }
   if (value == 1) {
     profile_indoor = true;
-    lightning0.AS3935_SetIndoors();
   }
   value = EEPROM.read(1);//simulate
   if (value == 0) {
@@ -765,6 +751,26 @@ void load_values () {
     EEPROM.write(5, culmulation_strikes_low);
     EEPROM.write(6, culmulation_strikes_high);
   }
+
+  value = EEPROM.read(7);//disturber
+  if (value == 0) {
+    disturber_on = false;
+  }
+  if (value == 1) {
+    disturber_on = true;
+  }
+
+  value = EEPROM.read(8);//SetMinStrikes
+  SetMinStrikes = value;
+
+  value = EEPROM.read(9);//SetNoiseFloorLvl
+  SetNoiseFloorLvl = value;
+
+  value = EEPROM.read(10);//SetWatchdogThreshold
+  SetWatchdogThreshold = value;
+
+  value = EEPROM.read(11);//SetSpikeRejection
+  SetSpikeRejection = value;
 }
 //----------------------------------------------
 //--------------GRAFIK-ROUTINEN-----------------
@@ -1159,39 +1165,51 @@ void increment_culmulation_strikes() {
 //--------------------------------------------------------------
 void set_chip_value(String function, int value) {
 
+  if (function == "SetOutdoors") {
+    lightning0.AS3935_SetOutdoors();
+    EEPROM.update(0, 0);
+    Serial.println("SetOutdoors OK");
+  }
+  if (function == "SetIndoors") {
+    lightning0.AS3935_SetIndoors();
+    EEPROM.update(0, 1);
+    Serial.println("SetIndoors OK");
+  }
   if (function == "DisturberEn") {
     lightning0.AS3935_DisturberEn();
-    Serial.println("SetDisturberEn");
+    EEPROM.update(7, 1);
+    Serial.println("SetDisturberEn OK");
   }
-
   if (function == "DisturberDis") {
     lightning0.AS3935_DisturberDis();
-    Serial.println("SetDisturberDis");
+    EEPROM.update(7, 0);
+    Serial.println("SetDisturberDis OK");
   }
-
   if (function == "SetMinStrikes") {
     lightning0.AS3935_SetMinStrikes(value);
+    EEPROM.update(8, value);
     Serial.print("SetMinStrikes:");
     Serial.println(value);
   }
-
   if (function == "SetNoiseFloorLvl") {
     lightning0.AS3935_SetNoiseFloorLvl(value);
+    EEPROM.update(9, value);
     Serial.print("SetNoiseFloorLvl: ");
     Serial.println(value);
   }
-
   if (function == "SetWatchdogThreshold") {
     lightning0.AS3935_SetWatchdogThreshold(value);
+    EEPROM.update(10, value);
     Serial.print("SetWatchdogThreshold: ");
     Serial.println(value);
   }
-
   if (function == "SetSpikeRejection") {
     lightning0.AS3935_SetSpikeRejection(value);
+    EEPROM.update(11, value);
     Serial.print("SetSpikeRejection: ");
     Serial.println(value);
   }
+  load_values();//load value from eeprom
 }
 //--------------------------------------------------------------
 //--------------------------------------------------------------
