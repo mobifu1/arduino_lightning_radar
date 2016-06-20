@@ -109,6 +109,7 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&tft, &myTouch);
 int but1, but2, but3, but4, but5, but6, but7, but8, but9, but10, pressed_button;
+int but20, but21, but22, but23, but24;
 boolean menue_on = false;
 
 //Pin
@@ -186,7 +187,7 @@ int last_ypos;
 boolean noise = false;//flag
 boolean disturb = false;//flag
 boolean simulate_on = false;
-byte profile_indoor;
+byte profile_outdoor;
 boolean sound_on;
 boolean stats;
 byte disturber_on;
@@ -265,6 +266,7 @@ uint16_t time_slot_strike[80][1] = {
 };
 int record_strikes = 0;
 int time_index = 0;
+byte set_value = 2;
 
 #include <EEPROM.h>
 //----------------------------------------------------------------
@@ -343,19 +345,38 @@ void setup()
   I2c.pullup(true);
   I2c.setSpeed(1);
   delay(2);
-
+  //ScreenText(WHITE, 30, 140 , 1, "I2C result only at Serial Port" , 0);
+  //ScreenText(WHITE, 30, 170 , 1, "Wait 20 sec !" , 0);
+  //I2c.scan();
   ScreenText(WHITE, 10, 70 , 1, "Init Serial & I2C", 0);
 
-  lightning0.AS3935_DefInit();   // set registers to default
-  // now update sensor cal for your application and power up chip
   load_values();//load value from eeprom
-  lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_indoor, disturber_on);//outdoor = 1 / disten = 1
+  lightning0.AS3935_DefInit();   // set registers to default
+  delay(100);
+  // now update sensor cal for your application and power up chip
+  lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_outdoor, disturber_on);//outdoor = 1 / disten = 1
   calibrated = true;
+  delay(100);
+  lightning0.AS3935_SetNoiseFloorLvl(SetNoiseFloorLvl);
+  delay(100);
+  lightning0.AS3935_SetWatchdogThreshold(SetWatchdogThreshold);
+  delay(100);
+  lightning0.AS3935_SetSpikeRejection(SetSpikeRejection);
+  delay(100);
+
+  //I got the best results when activating the IC's outdoor setting. No matter if it actually was physically outdoors or indoors.
+  //Though i eventually packed the Arduino and the chip into a ziplock bag and stuck it out the window to get rained on.
+  //noisefl | spike rej | watchdog | indoor/outdoor | tuneAntenna
+  //0,0,0,outdoors > 37km, 20km, 20km
+  //0,0,0,outdoors,5 > 40km, 37km, 34km, 34km, 27km
+  //1,0,0,outdoors,5 > 27km, 24km,
+
   // AS3935_ManualCal Parameters:
   //   --> capacitance, in pF (marked on package)
-  //   --> indoors/outdoors (AS3935_INDOORS:1 / AS3935_OUTDOORS:1)
-  //   --> disturbers (AS3935_DIST_EN:1 / AS3935_DIST_DIS:2)
+  //   --> indoors/outdoors (INDOORS:0 / OUTDOORS:1)
+  //   --> disturbers (DIST_EN:1 / DIST_DIS:0)
   // function also powers up the chip
+
   ScreenText(WHITE, 10, 90 , 1, "Load Data from EEPROM", 0);
 
   // enable interrupt (hook IRQ pin to Arduino Uno/Mega interrupt input: 0 -> pin 2, 1 -> pin 3 / 2 -> pin 21, 3 -> pin 20, 4 -> pin 19, 5 -> pin 18)
@@ -396,6 +417,19 @@ void setup()
   but10 = myButtons.addButton( 220, 85, 90,  30, "Set Data");
   myButtons.disableButton(but10, true);
   //----------------------------------------------------------
+  but20 = myButtons.addButton( 21, 140, 130,  20, "Set Noise Lvl");
+  myButtons.disableButton(but20, true);
+  but21 = myButtons.addButton( 21, 170, 130,  20, "Set Watchdog");
+  myButtons.disableButton(but21, true);
+  but22 = myButtons.addButton( 21, 200, 130,  20, "Set Spike Lvl");
+  myButtons.disableButton(but22, true);
+
+  but23 = myButtons.addButton( 250, 155, 20,  20, "+");
+  myButtons.disableButton(but23, true);
+  but24 = myButtons.addButton( 250, 185, 20,  20, "-");
+  myButtons.disableButton(but24, true);
+  //----------------------------------------------------------
+
   tft.clrScr();
   tft.setBackColor(BLACK);
   myButtons.drawButton(but1);
@@ -544,15 +578,20 @@ void loop() {
         myButtons.disableButton(but8, true);
         myButtons.disableButton(but9, true);
         myButtons.disableButton(but10, true);
+        myButtons.disableButton(but20, true);
+        myButtons.disableButton(but21, true);
+        myButtons.disableButton(but22, true);
+        myButtons.disableButton(but23, true);
+        myButtons.disableButton(but24, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        if (profile_indoor == 1) {
-          set_chip_value("SetOutdoors", 0);
+        if (profile_outdoor == 1) {
+          set_chip_value("SetIndoors", 0);
         }
         else {
-          set_chip_value("SetIndoors", 0);
+          set_chip_value("SetOutdoors", 0);
         }
         menue_on = false;
       }
@@ -568,6 +607,11 @@ void loop() {
         myButtons.disableButton(but8, true);
         myButtons.disableButton(but9, true);
         myButtons.disableButton(but10, true);
+        myButtons.disableButton(but20, true);
+        myButtons.disableButton(but21, true);
+        myButtons.disableButton(but22, true);
+        myButtons.disableButton(but23, true);
+        myButtons.disableButton(but24, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -592,6 +636,11 @@ void loop() {
         myButtons.disableButton(but8, true);
         myButtons.disableButton(but9, true);
         myButtons.disableButton(but10, true);
+        myButtons.disableButton(but20, true);
+        myButtons.disableButton(but21, true);
+        myButtons.disableButton(but22, true);
+        myButtons.disableButton(but23, true);
+        myButtons.disableButton(but24, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -631,6 +680,11 @@ void loop() {
         myButtons.disableButton(but8, true);
         myButtons.disableButton(but9, true);
         myButtons.disableButton(but10, true);
+        myButtons.disableButton(but20, true);
+        myButtons.disableButton(but21, true);
+        myButtons.disableButton(but22, true);
+        myButtons.disableButton(but23, true);
+        myButtons.disableButton(but24, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -657,6 +711,11 @@ void loop() {
         myButtons.disableButton(but8, true);
         myButtons.disableButton(but9, true);
         myButtons.disableButton(but10, true);
+        myButtons.disableButton(but20, true);
+        myButtons.disableButton(but21, true);
+        myButtons.disableButton(but22, true);
+        myButtons.disableButton(but23, true);
+        myButtons.disableButton(but24, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
@@ -682,16 +741,20 @@ void loop() {
         myButtons.disableButton(but8, true);
         myButtons.disableButton(but9, true);
         myButtons.disableButton(but10, true);
-
+        myButtons.disableButton(but20, true);
+        myButtons.disableButton(but21, true);
+        myButtons.disableButton(but22, true);
+        myButtons.disableButton(but23, true);
+        myButtons.disableButton(but24, true);
         tft.clrScr();
         tft.setBackColor(BLACK);
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
-        lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_indoor, disturber_on);//outdoor = 1 / disten = 1
+        lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_outdoor, disturber_on);
         menue_on = false;
       }
     }
-    if (pressed_button == but9) {//Chip Data
+    if (pressed_button == but9) {//Get Chip Data
       if (myButtons.buttonEnabled(but9)) {
         SetFilledRect(BLACK , 11, 126, 308, 233);
         chip_data();
@@ -700,10 +763,48 @@ void loop() {
     if (pressed_button == but10) {//Set chip data
       if (myButtons.buttonEnabled(but10)) {
         SetFilledRect(BLACK , 11, 126, 308, 233);
-        ScreenText(WHITE, 30, 140 , 1, "Function not inuse" , 0);
-        //        ScreenText(WHITE, 30, 140 , 1, "I2C result only at Serial Port" , 0);
-        //        ScreenText(WHITE, 30, 170 , 1, "Wait 20 sec !" , 0);
-        //        I2c.scan();
+        myButtons.drawButton(but20);
+        myButtons.drawButton(but21);
+        myButtons.drawButton(but22);
+        myButtons.drawButton(but23);
+        myButtons.drawButton(but24);
+        myButtons.enableButton(but20, true);
+        myButtons.enableButton(but21, true);
+        myButtons.enableButton(but22, true);
+        myButtons.enableButton(but23, true);
+        myButtons.enableButton(but24, true);
+        ScreenText(WHITE, 200, 170 , 1, String(set_value) + " ", 0);
+
+      }
+    }
+    if (pressed_button == but20) {//set Noise Lvl
+      if (myButtons.buttonEnabled(but20)) {
+        set_chip_value("SetNoiseFloorLvl", set_value);
+      }
+    }
+    if (pressed_button == but21) {//set Watchdog threshhold
+      if (myButtons.buttonEnabled(but21)) {
+        set_chip_value("SetWatchdogThreshold", set_value);
+      }
+    }
+    if (pressed_button == but22) {//set Spike Lvl
+      if (myButtons.buttonEnabled(but22)) {
+        set_chip_value("SetSpikeRejection", set_value);
+      }
+    }
+
+    if (pressed_button == but23) {//incr. Value
+      if (myButtons.buttonEnabled(but23)) {
+        set_value++;
+        if (set_value > 7) set_value = 7;
+        ScreenText(WHITE, 200, 170 , 1,  String(set_value)  + " ", 0);
+      }
+    }
+    if (pressed_button == but24) {//decr.. Value
+      if (myButtons.buttonEnabled(but24)) {
+        set_value--;
+        if (set_value > 7) set_value = 7;
+        ScreenText(WHITE, 200, 170 , 1,  String(set_value) + " " , 0);
       }
     }
   }
@@ -712,13 +813,8 @@ void loop() {
 void load_values () {
 
   int value;
-  value = EEPROM.read(0);//indoor/outdoor
-  if (value == 0) {
-    profile_indoor = 0;
-  }
-  if (value == 1) {
-    profile_indoor = 1;
-  }
+  profile_outdoor = EEPROM.read(0);//indoor/outdoor
+
   value = EEPROM.read(1);//simulate
   if (value == 0) {
     //simulate_on = false;
@@ -756,25 +852,11 @@ void load_values () {
     EEPROM.write(6, culmulation_strikes_high);
   }
 
-  value = EEPROM.read(7);//disturber
-  if (value == 0) {
-    disturber_on = 0;
-  }
-  if (value == 1) {
-    disturber_on = 1;
-  }
-
-  value = EEPROM.read(8);//SetMinStrikes
-  SetMinStrikes = value;
-
-  value = EEPROM.read(9);//SetNoiseFloorLvl
-  SetNoiseFloorLvl = value;
-
-  value = EEPROM.read(10);//SetWatchdogThreshold
-  SetWatchdogThreshold = value;
-
-  value = EEPROM.read(11);//SetSpikeRejection
-  SetSpikeRejection = value;
+  disturber_on = EEPROM.read(7);//disturber
+  SetMinStrikes = EEPROM.read(8);//SetMinStrikes
+  SetNoiseFloorLvl = EEPROM.read(9);//SetNoiseFloorLvl
+  SetWatchdogThreshold = EEPROM.read(10);//SetWatchdogThreshold
+  SetSpikeRejection = EEPROM.read(11);//SetSpikeRejection
 }
 //----------------------------------------------
 //--------------GRAFIK-ROUTINEN-----------------
@@ -904,11 +986,11 @@ void refresh_display() {
       ScreenText(WHITE, 210, 165 , 1, "Sound On", 0);
     }
 
-    if (profile_indoor == 1) {
-      ScreenText(WHITE, 210, 185 , 1, "Indoor", 0);
+    if (profile_outdoor == 1) {
+      ScreenText(WHITE, 210, 185 , 1, "Outdoor", 0);
     }
     else {
-      ScreenText(WHITE, 210, 185 , 1, "Outdoor", 0);
+      ScreenText(WHITE, 210, 185 , 1, "Indoor", 0);
     }
 
     ScreenText(WHITE, 40, 50 , 1, "45km", 0);
@@ -1112,21 +1194,19 @@ void chip_data() {
   Serial.println(culmulation_strikes);
 
   int noiseFloor = lightning0.AS3935_GetNoiseFloorLvl();
-  ScreenText(WHITE, 30, 160 , 1, "Noise floor: " + String(noiseFloor), 0);
+  ScreenText(WHITE, 30, 160 , 1, "Noise floor Level: " + String(noiseFloor), 0);
   Serial.print("Noise floor: ");
   Serial.println(noiseFloor);
 
-  int spikeRejection = lightning0.AS3935_GetSpikeRejection();
-  ScreenText(WHITE, 30, 180 , 1, "Spike rejection: " + String(spikeRejection), 0);
-  Serial.print("Spike rejection: ");
-  Serial.println(spikeRejection);
-
   int watchdogThreshold = lightning0.AS3935_GetWatchdogThreshold();
-  ScreenText(WHITE, 30, 200 , 1, "Watchdog threshold: " + String(watchdogThreshold), 0);
+  ScreenText(WHITE, 30, 180 , 1, "Watchdog threshold: " + String(watchdogThreshold), 0);
   Serial.print("Watchdog threshold: ");
   Serial.println(watchdogThreshold);
 
-
+  int spikeRejection = lightning0.AS3935_GetSpikeRejection();
+  ScreenText(WHITE, 30, 200 , 1, "Spike rejection: " + String(spikeRejection), 0);
+  Serial.print("Spike rejection: ");
+  Serial.println(spikeRejection);
 
   lightning0.AS3935_PrintAllRegs();
 }
@@ -1176,12 +1256,12 @@ void set_chip_value(String function, int value) {
 
   if (function == "SetOutdoors") {
     lightning0.AS3935_SetOutdoors();
-    EEPROM.update(0, 0);
+    EEPROM.update(0, 1);
     Serial.println("SetOutdoors OK");
   }
   if (function == "SetIndoors") {
     lightning0.AS3935_SetIndoors();
-    EEPROM.update(0, 1);
+    EEPROM.update(0, 0);
     Serial.println("SetIndoors OK");
   }
   if (function == "DisturberEn") {
