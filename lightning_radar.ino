@@ -354,6 +354,7 @@ void setup()
   lightning0.AS3935_DefInit();   // set registers to default
   delay(100);
   // now update sensor cal for your application and power up chip
+  //lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, 1, 1);//outdoor = 1 / disten = 1
   lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_outdoor, disturber_on);//outdoor = 1 / disten = 1
   calibrated = true;
   delay(100);
@@ -1275,25 +1276,25 @@ void set_chip_value(String function, int value) {
     Serial.println("SetDisturberDis OK");
   }
   if (function == "SetMinStrikes") {
-    lightning0.AS3935_SetMinStrikes(value);
+    lightning0.AS3935_SetMinStrikes(uint8_t(value));
     EEPROM.update(8, value);
     Serial.print("SetMinStrikes:");
     Serial.println(value);
   }
   if (function == "SetNoiseFloorLvl") {
-    lightning0.AS3935_SetNoiseFloorLvl(value);
+    lightning0.AS3935_SetNoiseFloorLvl(uint8_t(value));
     EEPROM.update(9, value);
     Serial.print("SetNoiseFloorLvl: ");
     Serial.println(value);
   }
   if (function == "SetWatchdogThreshold") {
-    lightning0.AS3935_SetWatchdogThreshold(value);
+    lightning0.AS3935_SetWatchdogThreshold(uint8_t(value));
     EEPROM.update(10, value);
     Serial.print("SetWatchdogThreshold: ");
     Serial.println(value);
   }
   if (function == "SetSpikeRejection") {
-    lightning0.AS3935_SetSpikeRejection(value);
+    lightning0.AS3935_SetSpikeRejection(uint8_t(value));
     EEPROM.update(11, value);
     Serial.print("SetSpikeRejection: ");
     Serial.println(value);
