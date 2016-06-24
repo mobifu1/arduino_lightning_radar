@@ -333,7 +333,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V1.2-Beta", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V1.3-Beta", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -752,6 +752,7 @@ void loop() {
         myButtons.drawButton(but1);
         myButtons.enableButton(but1, true);
         lightning0.AS3935_ManualCal(AS3935_CAPACITANCE, profile_outdoor, disturber_on);
+        calibrated = true;
         menue_on = false;
       }
     }
@@ -781,16 +782,19 @@ void loop() {
     if (pressed_button == but20) {//set Noise Lvl
       if (myButtons.buttonEnabled(but20)) {
         set_chip_value("SetNoiseFloorLvl", set_value);
+        calibrated = false;
       }
     }
     if (pressed_button == but21) {//set Watchdog threshhold
       if (myButtons.buttonEnabled(but21)) {
         set_chip_value("SetWatchdogThreshold", set_value);
+        calibrated = false;
       }
     }
     if (pressed_button == but22) {//set Spike Lvl
       if (myButtons.buttonEnabled(but22)) {
         set_chip_value("SetSpikeRejection", set_value);
+        calibrated = false;
       }
     }
 
