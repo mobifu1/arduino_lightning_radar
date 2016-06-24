@@ -1033,20 +1033,22 @@ void refresh_display() {
       SetFilledCircle(BLACK , 10,  205, 2);
     }
 
-    if (disturber_on == 0 ) {
-      SetFilledCircle(GRAY , 10,  175, 2);
-      ScreenText(GRAY, 20, 170 , 1, "Dist of", 0);
+    if (disturber_on == 1 && disturb == false) {
+      ScreenText(BLACK, 20, 220 , 1, "           ", 0);
+      SetFilledCircle(BLACK , 10,  225, 2);
     }
 
-    if (disturb == true ) {
+    if (disturber_on == 1 && disturb == true) {
       ScreenText(WHITE, 20, 220 , 1, "Disturber !", 0);
       SetFilledCircle(RED , 10,  225, 2);
       disturb = false;
     }
-    else {
-      ScreenText(BLACK, 20, 220 , 1, "Disturber !", 0);
-      SetFilledCircle(BLACK , 10,  225, 2);
+
+    if (disturber_on == 0) {
+      ScreenText(GRAY, 20, 220 , 1, "Dist of", 0);
+      SetFilledCircle(GRAY , 10,  225, 2);
     }
+
     //------------------------------------------------------------
     //ScreenText(WHITE, 140, 10 , 1, String(lightning_timer), 0);
     SetLines(GREEN , 70, 40, 160 , 239);
