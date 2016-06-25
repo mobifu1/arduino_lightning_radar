@@ -333,7 +333,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V1.3-Beta", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V1.3-RC", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -1169,16 +1169,16 @@ void lightning_direction() {
       }
     }
   }
-  if (lightning_strike[array_position_oldest][5] < lightning_strike[array_position_newest][5] && total_strikes > 9) {
+  if (lightning_strike[array_position_oldest][5] < lightning_strike[array_position_newest][5] && strikes_count > 9) {
     SetTriangle(BLACK , 130, 235, 140, 235, 135, 225);
     SetTriangle(WHITE , 130, 225, 140, 225, 135, 235);
 
   }
-  if (lightning_strike[array_position_oldest][5] > lightning_strike[array_position_newest][5] && total_strikes > 9) {
+  if (lightning_strike[array_position_oldest][5] > lightning_strike[array_position_newest][5] && strikes_count > 9) {
     SetTriangle(BLACK , 130, 225, 140, 225, 135, 235);
     SetTriangle(WHITE , 130, 235, 140, 235, 135, 225);
   }
-  if (lightning_strike[array_position_oldest][5] == lightning_strike[array_position_newest][5] && total_strikes < 9) {
+  if (lightning_strike[array_position_oldest][5] == lightning_strike[array_position_newest][5] && strikes_count < 10) {
     SetTriangle(BLACK , 130, 235, 140, 235, 135, 225);
     SetTriangle(BLACK , 130, 225, 140, 225, 135, 235);
   }
