@@ -1224,7 +1224,7 @@ void time_record_strikes() {
   if (slot_age < 0) {
     slot_age = slot_age + 32768;
   }
-  if (record_strikes > 50) {
+  if (record_strikes > 50) {//50=limit > no more space on display
     record_strikes = 50;
   }
   time_slot_strike[0][0] = record_strikes;
