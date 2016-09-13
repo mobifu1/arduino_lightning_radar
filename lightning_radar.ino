@@ -110,7 +110,6 @@ ITDB02_Touch        myTouch(6, 5, 4, 3, 2);
 UTFT_Buttons  myButtons(&tft, &myTouch);
 int but1, but2, but3, but4, but5, but6, but7, but8, but9, but10, pressed_button;
 int but20, but21, but22, but23, but24;
-
 boolean menue_on = false;
 
 //Pin
@@ -394,57 +393,41 @@ void setup()
   tft.clrScr();
   tft.setBackColor(BLACK);
 
-  char but1_label [] = "";
-  char but2_label [] = "In/Outdoor";
-  char but3_label [] = "Disturber";
-  char but4_label [] = "Simulate";
-  char but5_label [] = "Life x";
-  char but6_label [] = "Stats";
-  char but7_label [] = "Sound";
-  char but8_label [] = "Calibrate";
-  char but9_label [] = "Get Data";
-  char but10_label [] = "Set Data";
-  char but20_label [] = "Set Noise Lvl" ;
-  char but21_label [] = "Set Watchdog" ;
-  char but22_label [] = "Set Spike Lvl" ;
-  char but23_label [] = "+" ;
-  char but24_label [] = "-" ;
-
   myButtons.setTextFont(SmallFont);
   myButtons.setButtonColors(VGA_WHITE, VGA_WHITE, VGA_WHITE, VGA_BLACK, VGA_BLACK);
-  but1 = myButtons.addButton( 280,  200, 30,  30, but1_label);
+  but1 = myButtons.addButton( 280,  200, 30,  30, "");
   //----------------------------------------------------------
-  but4 = myButtons.addButton( 10,  5, 90,  30, but4_label);
+  but4 = myButtons.addButton( 10,  5, 90,  30, "Simulate");
   myButtons.disableButton(but4, true);
-  but2 = myButtons.addButton( 10,  45, 90,  30, but2_label);
+  but2 = myButtons.addButton( 10,  45, 90,  30, "In/Outdoor");
   myButtons.disableButton(but2, true);
-  but3 = myButtons.addButton( 10,  85, 90,  30, but3_label);
+  but3 = myButtons.addButton( 10,  85, 90,  30, "Disturber");
   myButtons.disableButton(but3, true);
   //----------------------------------------------------------
-  but5 = myButtons.addButton( 115,  5, 90,  30, but5_label);
+  but5 = myButtons.addButton( 115,  5, 90,  30, "Life x");
   myButtons.disableButton(but5, true);
-  but6 = myButtons.addButton( 115,  45, 90,  30, but6_label);
+  but6 = myButtons.addButton( 115,  45, 90,  30, "Stats");
   myButtons.disableButton(but6, true);
-  but7 = myButtons.addButton( 115,  85, 90,  30, but7_label );
+  but7 = myButtons.addButton( 115,  85, 90,  30, "Sound");
   myButtons.disableButton(but7, true);
   //----------------------------------------------------------
-  but8 = myButtons.addButton( 220, 5, 90,  30, but8_label);
+  but8 = myButtons.addButton( 220, 5, 90,  30, "Calibrate");
   myButtons.disableButton(but8, true);
-  but9 = myButtons.addButton( 220, 45, 90,  30, but9_label);
+  but9 = myButtons.addButton( 220, 45, 90,  30, "Get Data");
   myButtons.disableButton(but9, true);
-  but10 = myButtons.addButton( 220, 85, 90,  30, but10_label);
+  but10 = myButtons.addButton( 220, 85, 90,  30, "Set Data");
   myButtons.disableButton(but10, true);
   //----------------------------------------------------------
-  but20 = myButtons.addButton( 21, 140, 130,  20, but20_label);
+  but20 = myButtons.addButton( 21, 140, 130,  20, "Set Noise Lvl");
   myButtons.disableButton(but20, true);
-  but21 = myButtons.addButton( 21, 170, 130,  20, but21_label);
+  but21 = myButtons.addButton( 21, 170, 130,  20, "Set Watchdog");
   myButtons.disableButton(but21, true);
-  but22 = myButtons.addButton( 21, 200, 130,  20, but22_label);
+  but22 = myButtons.addButton( 21, 200, 130,  20, "Set Spike Lvl");
   myButtons.disableButton(but22, true);
 
-  but23 = myButtons.addButton( 250, 155, 20,  20, but23_label);
+  but23 = myButtons.addButton( 250, 155, 20,  20, "+");
   myButtons.disableButton(but23, true);
-  but24 = myButtons.addButton( 250, 185, 20,  20, but24_label);
+  but24 = myButtons.addButton( 250, 185, 20,  20, "-");
   myButtons.disableButton(but24, true);
   //----------------------------------------------------------
 
@@ -492,7 +475,7 @@ void loop() {
       //Serial.print("Lightning detected! Strike energy: ");
       //Serial.print(lightning_energy);
       //Serial.println(" eV");
-      if (lightning_dist_km < 50) {
+      if (lightning_dist_km < 50 && lightning_dist_km >= 0) {
         total_strikes++;
         record_strikes++;
         increment_culmulation_strikes();
@@ -883,7 +866,7 @@ void load_values () {
 //----------------------------------------------
 //--------------GRAFIK-ROUTINEN-----------------
 //----------------------------------------------
-void ScreenText(uint16_t color, int xtpos, int ytpos, int text_size , String text, int rotation) {
+unsigned long ScreenText(uint16_t color, int xtpos, int ytpos, int text_size , String text, int rotation) {
   tft.setColor(color);
   if (text_size == 1) {
     tft.setFont(SmallFont);
@@ -894,37 +877,37 @@ void ScreenText(uint16_t color, int xtpos, int ytpos, int text_size , String tex
   tft.print(text, xtpos, ytpos, rotation);
 }
 
-void SetLines(uint16_t color , int xl1pos, int yl1pos, int xl2pos, int yl2pos) {
+unsigned long SetLines(uint16_t color , int xl1pos, int yl1pos, int xl2pos, int yl2pos) {
   tft.setColor(color);
   tft.drawLine(xl1pos, yl1pos, xl2pos, yl2pos);
 }
 
-void SetPoint(uint16_t color, int xppos, int yppos) {
+unsigned long SetPoint(uint16_t color, int xppos, int yppos) {
   tft.setColor(color);
   tft.drawPixel(xppos, yppos);
 }
 
-void SetRect(uint16_t color , int xr1pos, int yr1pos, int xr2pos, int yr2pos) {
+unsigned long SetRect(uint16_t color , int xr1pos, int yr1pos, int xr2pos, int yr2pos) {
   tft.setColor(color);
   tft.drawRect(xr1pos, yr1pos, xr2pos, yr2pos);
 }
 
-void SetFilledRect(uint16_t color , int xr1pos, int yr1pos, int xr2pos, int yr2pos) {
+unsigned long SetFilledRect(uint16_t color , int xr1pos, int yr1pos, int xr2pos, int yr2pos) {
   tft.setColor(color);
   tft.fillRect(xr1pos, yr1pos, xr2pos, yr2pos);
 }
 
-void SetCircle(uint16_t color , int xcpos, int ycpos, int radius) {
+unsigned long SetCircle(uint16_t color , int xcpos, int ycpos, int radius) {
   tft.setColor(color);
   tft.drawCircle(xcpos, ycpos, radius);
 }
 
-void SetFilledCircle(uint16_t color , int xcpos, int ycpos, int radius) {
+unsigned long SetFilledCircle(uint16_t color , int xcpos, int ycpos, int radius) {
   tft.setColor(color);
   tft.fillCircle(xcpos, ycpos, radius);
 }
 
-void SetTriangle(uint16_t color , int xt1pos, int yt1pos, int xt2pos, int yt2pos , int xt3pos, int yt3pos) {
+unsigned long SetTriangle(uint16_t color , int xt1pos, int yt1pos, int xt2pos, int yt2pos , int xt3pos, int yt3pos) {
   tft.setColor(color);
   tft.drawLine(xt1pos,  yt1pos, xt2pos,  yt2pos);
   tft.drawLine(xt2pos,  yt2pos, xt3pos,  yt3pos);
@@ -1150,7 +1133,9 @@ void lightning_energy() {
   if (stroke_energy > 100) {
     stroke_energy = 100;
   }
-
+  if (stroke_energy < 0) {
+    stroke_energy = 0;
+  }
   ScreenText(WHITE, 5, 148 , 1, "eV", 0);
   SetRect(WHITE , 10, 40, 15, 142);//Frame
   SetFilledRect(BLACK , 11, 41, 14, 141);//clear content
@@ -1255,26 +1240,18 @@ void time_record_strikes() {
   time_slot_strike[0][0] = record_strikes;
   //SetLines(GRAY , 318 - 40, 140 - 51, 318 , 140 - 51); //Top Line
   SetLines(GRAY , 319, 141, 319 , 141 - 51); //y line max. 50
-<<<<<<< HEAD
-  SetLines(BLACK , 318 , 140, 318 , 140 - 51);// clear timie slot
-=======
->>>>>>> 114a6456b0122e9280f792e62d8a55c9a1b27e98
+  SetLines(BLACK , 318 , 140, 318 , 140 - 51);
   SetLines(RED , 318 , 140, 318 , 140 - (time_slot_strike[0][0] / factor));
   ScreenText(RED, 318 - 105, 135 , 1, "12h", 0);//Scale
   SetLines(RED , 318 - 78, 141, 318 , 141);//Base Line
-  ScreenText(RED, 270, 70 , 1, "x" + String(factor), 0);
+  ScreenText(RED, 290, 60 , 1, "x" + String(factor), 0);
 
   if (slot_age > 540) {//9min * 80 = 12h
     time_index = lightning_timer;
     for (int s = 78; s >= 0; s--) {
-<<<<<<< HEAD
-      time_slot_strike[s + 1][0] = time_slot_strike[s][0];
-      SetLines(BLACK , 318 - s, 140, 318 - s , 140 - 51);
-=======
       int copy_value = time_slot_strike[s][0];
       time_slot_strike[s + 1][0] = copy_value;
-      SetLines(BLACK , 318 - s, 140, 318 - s , 140 - 50);
->>>>>>> 114a6456b0122e9280f792e62d8a55c9a1b27e98
+      SetLines(BLACK , 318 - s, 140, 318 - s , 140 - 51);
       SetLines(RED , 318 - s, 140, 318 - s , 140 - (time_slot_strike[s][0] / factor));
     }
     record_strikes = 0;
