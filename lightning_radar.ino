@@ -1255,17 +1255,26 @@ void time_record_strikes() {
   time_slot_strike[0][0] = record_strikes;
   //SetLines(GRAY , 318 - 40, 140 - 51, 318 , 140 - 51); //Top Line
   SetLines(GRAY , 319, 141, 319 , 141 - 51); //y line max. 50
+<<<<<<< HEAD
+  SetLines(BLACK , 318 , 140, 318 , 140 - 51);// clear timie slot
+=======
+>>>>>>> 114a6456b0122e9280f792e62d8a55c9a1b27e98
   SetLines(RED , 318 , 140, 318 , 140 - (time_slot_strike[0][0] / factor));
   ScreenText(RED, 318 - 105, 135 , 1, "12h", 0);//Scale
   SetLines(RED , 318 - 78, 141, 318 , 141);//Base Line
-
+  ScreenText(RED, 270, 70 , 1, "x" + String(factor), 0);
 
   if (slot_age > 540) {//9min * 80 = 12h
     time_index = lightning_timer;
     for (int s = 78; s >= 0; s--) {
+<<<<<<< HEAD
+      time_slot_strike[s + 1][0] = time_slot_strike[s][0];
+      SetLines(BLACK , 318 - s, 140, 318 - s , 140 - 51);
+=======
       int copy_value = time_slot_strike[s][0];
       time_slot_strike[s + 1][0] = copy_value;
       SetLines(BLACK , 318 - s, 140, 318 - s , 140 - 50);
+>>>>>>> 114a6456b0122e9280f792e62d8a55c9a1b27e98
       SetLines(RED , 318 - s, 140, 318 - s , 140 - (time_slot_strike[s][0] / factor));
     }
     record_strikes = 0;
