@@ -333,7 +333,7 @@ void setup()
   //pinMode(IRQ_PIN, INPUT);
   pinMode(Beep, OUTPUT);
   pinMode(test, OUTPUT);
-  ScreenText(WHITE, 10, 10 , 2, "V1.4-RC", 0);
+  ScreenText(WHITE, 10, 10 , 2, "V1.4-R", 0);
   ScreenText(WHITE, 10, 50 , 1, "Touch Available:" + String(myTouch.dataAvailable()), 0);
   //------------------------------------------------------------------------------
   Serial.begin(9600);
@@ -502,7 +502,7 @@ void loop() {
             SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
             if (sound_on == true) {
               //do something with piezo
-              tone(Beep, 1000, 50);
+              if (total_strikes > 5)tone(Beep, 1000, 50);
             }
             break;
           }
@@ -953,7 +953,7 @@ void simulate_strikes() {
         SetCircle(MAGENTA , last_xpos,  last_ypos, 8);
         if (sound_on == true) {
           //do something with piezo
-          tone(Beep, 1000, 50);//pin,hertz,duration
+          if (total_strikes > 5)tone(Beep, 1000, 50); //pin,hertz,duration
         }
         break;
         //activ,strenght,distance,age,x_pos,y_pos
